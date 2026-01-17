@@ -1,0 +1,17 @@
+# Africa Mezziah - robots.txt
+# Allow all search engine crawlers
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://africamezziah.com/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /_next/
+
+# Allow specific assets
+Allow: /_next/static/
+Allow: /images/
