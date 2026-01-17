@@ -11,17 +11,17 @@ const Hero3D = dynamic(() => import("@/components/3d/Hero3D"), { ssr: false });
 
 // Sample featured products (replace with API data)
 const featuredProducts = [
-  { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://picsum.photos/seed/dress1/400/600", category: "Dresses" },
-  { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://picsum.photos/seed/top1/400/600", category: "Tops" },
-  { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://picsum.photos/seed/skirt1/400/600", category: "Traditional" },
-  { id: "4", name: "Beaded Statement Necklace", price: 18000, image: "https://picsum.photos/seed/necklace1/400/600", category: "Accessories" },
+  { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=400&h=600&fit=crop", category: "Dresses" },
+  { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=400&h=600&fit=crop", category: "Tops" },
+  { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=400&h=600&fit=crop", category: "Traditional" },
+  { id: "4", name: "Beaded Statement Necklace", price: 18000, image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=600&fit=crop", category: "Accessories" },
 ];
 
 const categories = [
-  { name: "Dresses", image: "https://picsum.photos/seed/cat1/300/400", count: 42 },
-  { name: "Tops", image: "https://picsum.photos/seed/cat2/300/400", count: 38 },
-  { name: "Traditional Wear", image: "https://picsum.photos/seed/cat3/300/400", count: 25 },
-  { name: "Accessories", image: "https://picsum.photos/seed/cat4/300/400", count: 56 },
+  { name: "Dresses", image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=300&h=400&fit=crop", count: 42 },
+  { name: "Tops", image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=300&h=400&fit=crop", count: 38 },
+  { name: "Traditional Wear", image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=300&h=400&fit=crop", count: 25 },
+  { name: "Accessories", image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&h=400&fit=crop", count: 56 },
 ];
 
 export default function HomePage() {

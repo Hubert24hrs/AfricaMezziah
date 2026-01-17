@@ -8,14 +8,14 @@ import ProductCard from "@/components/ui/ProductCard";
 
 // Sample products data
 const allProducts = [
-    { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://picsum.photos/seed/p1/400/600", category: "Dresses", color: "Orange" },
-    { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://picsum.photos/seed/p2/400/600", category: "Tops", color: "Gold" },
-    { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://picsum.photos/seed/p3/400/600", category: "Traditional", color: "Blue" },
-    { id: "4", name: "Beaded Statement Necklace", price: 18000, image: "https://picsum.photos/seed/p4/400/600", category: "Accessories", color: "Gold" },
-    { id: "5", name: "Aso-Oke Gown", price: 85000, image: "https://picsum.photos/seed/p5/400/600", category: "Dresses", color: "Cream" },
-    { id: "6", name: "Dashiki Print Blouse", price: 24000, image: "https://picsum.photos/seed/p6/400/600", category: "Tops", color: "Multi" },
-    { id: "7", name: "Mud Cloth Trousers", price: 38000, image: "https://picsum.photos/seed/p7/400/600", category: "Traditional", color: "Brown" },
-    { id: "8", name: "Cowrie Shell Earrings", price: 12000, image: "https://picsum.photos/seed/p8/400/600", category: "Accessories", color: "Natural" },
+    { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=400&h=600&fit=crop", category: "Dresses", color: "Orange" },
+    { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=400&h=600&fit=crop", category: "Tops", color: "Gold" },
+    { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=400&h=600&fit=crop", category: "Traditional", color: "Blue" },
+    { id: "4", name: "Beaded Statement Necklace", price: 18000, image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=600&fit=crop", category: "Accessories", color: "Gold" },
+    { id: "5", name: "Aso-Oke Gown", price: 85000, image: "https://images.unsplash.com/photo-1594938391221-52c9089c9f8e?w=400&h=600&fit=crop", category: "Dresses", color: "Cream" },
+    { id: "6", name: "Dashiki Print Blouse", price: 24000, image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop", category: "Tops", color: "Multi" },
+    { id: "7", name: "Mud Cloth Trousers", price: 38000, image: "https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=400&h=600&fit=crop", category: "Traditional", color: "Brown" },
+    { id: "8", name: "Cowrie Shell Earrings", price: 12000, image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=600&fit=crop", category: "Accessories", color: "Natural" },
 ];
 
 const categories = ["All", "Dresses", "Tops", "Traditional", "Accessories"];
@@ -74,8 +74,8 @@ export default function ShopPage() {
                                                 key={cat}
                                                 onClick={() => setSelectedCategory(cat)}
                                                 className={`block w-full text-left px-4 py-2 rounded-lg transition-colors ${selectedCategory === cat
-                                                        ? "bg-primary-500 text-white"
-                                                        : "text-dark-600 hover:bg-ivory"
+                                                    ? "bg-primary-500 text-white"
+                                                    : "text-dark-600 hover:bg-ivory"
                                                     }`}
                                             >
                                                 {cat}

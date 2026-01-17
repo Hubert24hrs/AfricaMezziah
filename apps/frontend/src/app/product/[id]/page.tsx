@@ -15,10 +15,10 @@ const product = {
     price: 45000,
     description: "A stunning maxi dress featuring authentic Ankara print in vibrant colors. This elegant piece is perfect for special occasions, weddings, or cultural celebrations. Handcrafted with attention to detail, it celebrates African heritage while embracing modern fashion trends.",
     images: [
-        "https://picsum.photos/seed/prod1a/600/800",
-        "https://picsum.photos/seed/prod1b/600/800",
-        "https://picsum.photos/seed/prod1c/600/800",
-        "https://picsum.photos/seed/prod1d/600/800",
+        "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=600&h=800&fit=crop",
+        "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=600&h=800&fit=crop",
+        "https://images.unsplash.com/photo-1594938391221-52c9089c9f8e?w=600&h=800&fit=crop",
+        "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=800&fit=crop",
     ],
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["Orange/Red", "Blue/Gold", "Green/Yellow"],
@@ -28,10 +28,10 @@ const product = {
 };
 
 const relatedProducts = [
-    { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://picsum.photos/seed/rel1/400/600" },
-    { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://picsum.photos/seed/rel2/400/600" },
-    { id: "4", name: "Dashiki Blouse", price: 24000, image: "https://picsum.photos/seed/rel3/400/600" },
-    { id: "5", name: "Aso-Oke Gown", price: 85000, image: "https://picsum.photos/seed/rel4/400/600" },
+    { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=400&h=600&fit=crop" },
+    { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=400&h=600&fit=crop" },
+    { id: "4", name: "Dashiki Blouse", price: 24000, image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=600&fit=crop" },
+    { id: "5", name: "Aso-Oke Gown", price: 85000, image: "https://images.unsplash.com/photo-1594938391221-52c9089c9f8e?w=400&h=600&fit=crop" },
 ];
 
 export default function ProductPage() {
@@ -121,8 +121,8 @@ export default function ProductPage() {
                                                 key={color}
                                                 onClick={() => setSelectedColor(color)}
                                                 className={`px-4 py-2 rounded-full border-2 transition-colors ${selectedColor === color
-                                                        ? "border-primary-500 bg-primary-50 text-primary-700"
-                                                        : "border-dark-200 text-dark-600 hover:border-dark-400"
+                                                    ? "border-primary-500 bg-primary-50 text-primary-700"
+                                                    : "border-dark-200 text-dark-600 hover:border-dark-400"
                                                     }`}
                                             >
                                                 {color}
@@ -140,8 +140,8 @@ export default function ProductPage() {
                                                 key={size}
                                                 onClick={() => setSelectedSize(size)}
                                                 className={`w-12 h-12 rounded-lg border-2 font-medium transition-colors ${selectedSize === size
-                                                        ? "border-primary-500 bg-primary-500 text-white"
-                                                        : "border-dark-200 text-dark-600 hover:border-dark-400"
+                                                    ? "border-primary-500 bg-primary-500 text-white"
+                                                    : "border-dark-200 text-dark-600 hover:border-dark-400"
                                                     }`}
                                             >
                                                 {size}
