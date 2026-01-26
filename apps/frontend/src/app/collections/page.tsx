@@ -3,6 +3,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { BreadcrumbSchema } from "@/components/seo/StructuredData";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
     title: "Collections - Curated African Fashion",
@@ -28,14 +29,14 @@ const collections = [
     {
         name: "New Arrivals",
         description: "Fresh African prints and styles just added to our collection",
-        image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=600&h=400&fit=crop",
+        image: "https://images.unsplash.com/photo-1760907949889-eb62b7fd9f75?w=600&h=400&fit=crop",
         count: 24,
         slug: "new-arrivals",
     },
     {
         name: "Wedding Guest",
         description: "Stunning Aso-Ebi and traditional outfits for ceremonies",
-        image: "https://images.unsplash.com/photo-1594938391221-52c9089c9f8e?w=600&h=400&fit=crop",
+        image: "https://images.unsplash.com/photo-1681545303529-b6beb2e19f02?w=600&h=400&fit=crop",
         count: 18,
         slug: "wedding-guest",
     },
@@ -49,7 +50,7 @@ const collections = [
     {
         name: "Kente Collection",
         description: "Traditional Ghanaian Kente-inspired tops and accessories",
-        image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=600&h=400&fit=crop",
+        image: "https://images.unsplash.com/photo-1709809081557-78f803ce93a0?w=600&h=400&fit=crop",
         count: 15,
         slug: "kente",
     },
@@ -105,10 +106,12 @@ export default function CollectionsPage() {
                             >
                                 <article className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                                     <div className="relative aspect-[3/2] overflow-hidden">
-                                        <img
+                                        <Image
                                             src={collection.image}
                                             alt={`${collection.name} - African Fashion Collection`}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-dark-950/60 to-transparent" />
                                         <span className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full text-sm font-medium text-dark-950">
