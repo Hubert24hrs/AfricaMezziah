@@ -4,7 +4,7 @@ import { AiModule } from '../ai/ai.module';
 import { ProductsModule } from '../products/products.module';
 
 @Module({
-    imports: [AiModule, ProductsModule],
-    controllers: [WhatsappController],
+  imports: [AiModule, ProductsModule],
+  controllers: [WhatsappController],
 })
-export class WhatsappModule { }
+export class WhatsappModule {}
