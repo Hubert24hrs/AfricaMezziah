@@ -1,0 +1,41 @@
+export const lightColors = {
+  primary: '#C9A84C',
+  secondary: '#1A1A2E',
+  accent: '#E94560',
+  background: '#FAFAFA',
+  backgroundDark: '#0F0F1A',
+  surface: '#FFFFFF',
+  surfaceHover: '#F0F0F5',
+  textPrimary: '#0F0F1A',
+  textSecondary: '#4A4A6A',
+  textMuted: '#9090A0',
+  textInverse: '#FFFFFF',
+  success: '#00C896',
+  warning: '#FFB830',
+  error: '#FF4757',
+  info: '#0EA5E9',
+  border: 'rgba(0,0,0,0.12)',
+  borderStrong: 'rgba(0,0,0,0.24)',
+}
+
+export const darkColors = {
+  primary: '#C9A84C',
+  secondary: '#1A1A2E',
+  accent: '#E94560',
+  background: '#0F0F1A',
+  backgroundDark: '#0F0F1A',
+  surface: '#16213E',
+  surfaceHover: '#1E2D50',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#B0B0C3',
+  textMuted: '#6B6B80',
+  textInverse: '#0F0F1A',
+  success: '#00C896',
+  warning: '#FFB830',
+  error: '#FF4757',
+  info: '#0EA5E9',
+  border: 'rgba(255,255,255,0.12)',
+  borderStrong: 'rgba(255,255,255,0.24)',
+}
+
+export type AppColors = typeof darkColors

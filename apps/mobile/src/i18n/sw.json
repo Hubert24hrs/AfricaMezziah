@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Inapakia...",
+    "error": "Hitilafu imetokea",
+    "retry": "Jaribu Tena",
+    "cancel": "Ghairi",
+    "confirm": "Thibitisha",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "close": "Funga",
+    "next": "Endelea",
+    "back": "Rudi",
+    "skip": "Ruka",
+    "done": "Imekamilika",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "sort": "Panga",
+    "seeAll": "Ona Yote",
+    "addToCart": "Ongeza Kwenye Kikapu",
+    "buyNow": "Nunua Sasa",
+    "share": "Shiriki",
+    "noResults": "Hakuna matokeo",
+    "pullToRefresh": "Vuta kusasisha"
+  },
+  "auth": {
+    "login": "Ingia",
+    "register": "Fungua Akaunti",
+    "logout": "Toka",
+    "email": "Anwani ya Barua Pepe",
+    "password": "Nywila",
+    "forgotPassword": "Umesahau nywila?",
+    "welcomeBack": "Karibu tena",
+    "createAccountSubtitle": "Jiunge na Africa Mezziah"
+  },
+  "home": {
+    "flashSale": "Punguzo la Haraka",
+    "endsIn": "Inaisha ndani ya",
+    "aiPicks": "Vilichaguliwa Kwako",
+    "trending": "Inayopendwa",
+    "newArrivals": "Bidhaa Mpya",
+    "freeShipping": "Usafirishaji wa bure kwa maagizo zaidi ya {{amount}}"
+  },
+  "profile": {
+    "title": "Wasifu",
+    "logout": "Toka"
+  },
+  "errors": {
+    "network": "Hitilafu ya mtandao. Tafadhali angalia muunganisho wako.",
+    "generic": "Hitilafu imetokea. Tafadhali jaribu tena."
+  }
+}
