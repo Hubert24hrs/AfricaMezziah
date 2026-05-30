@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+/ios
+/android
+
+# Metro
+.metro-health-check*
+
+# debug / env
+npm-debug.*
+.env*.local
+.env
+
+# native secrets (provide locally — see README)
+google-services.json
+GoogleService-Info.plist
+
+# macOS
+.DS_Store

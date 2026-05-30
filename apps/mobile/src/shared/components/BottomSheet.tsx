@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, forwardRef } from 'react'
+import React, { useCallback, useMemo, forwardRef } from 'react'
 import { StyleSheet } from 'react-native'
 import RNBottomSheet, {
   BottomSheetBackdrop,

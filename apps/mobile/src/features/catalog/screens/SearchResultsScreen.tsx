@@ -36,7 +36,7 @@ const SearchResultsScreen: React.FC = memo(() => {
   const [activeQuery, setActiveQuery] = useState(initialQuery)
   const [page, setPage] = useState(1)
   const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [sort, setSort] = useState(initialSort ?? 'newest')
+  const [sort] = useState(initialSort ?? 'newest')
 
   const { data, isFetching, isLoading } = useGetProductsQuery({
     q: activeQuery,

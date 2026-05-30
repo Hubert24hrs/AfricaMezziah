@@ -93,7 +93,7 @@ const PaymentScreen: React.FC = memo(() => {
   const { colors } = useTheme()
   const navigation = useNavigation<any>()
   const { data: methods, isLoading } = useGetPaymentMethodsQuery()
-  const [deleteMethod, { isLoading: isDeleting }] = useDeletePaymentMethodMutation()
+  const [deleteMethod] = useDeletePaymentMethodMutation()
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null)
 
   const handleDelete = useCallback(

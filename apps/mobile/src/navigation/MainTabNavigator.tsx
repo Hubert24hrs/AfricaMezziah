@@ -1,5 +1,4 @@
 import React, { memo, useCallback } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { useSelector } from 'react-redux'
@@ -13,16 +12,6 @@ import ProfileStackNavigator from './ProfileStackNavigator'
 import { ROUTES } from '@shared/constants/routes'
 
 const Tab = createBottomTabNavigator()
-
-const CartBadge: React.FC<{ count: number }> = memo(({ count }) => {
-  const { colors } = useTheme()
-  if (count === 0) return null
-  return (
-    <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-      <Text style={styles.badgeText}>{count > 99 ? '99+' : String(count)}</Text>
-    </View>
-  )
-})
 
 const MainTabNavigator: React.FC = memo(() => {
   const { colors } = useTheme()
@@ -68,11 +57,6 @@ const MainTabNavigator: React.FC = memo(() => {
       <Tab.Screen name={ROUTES.PROFILE_TAB} component={ProfileStackNavigator} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   )
-})
-
-const styles = StyleSheet.create({
-  badge: { position: 'absolute', top: -4, right: -8, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeText: { color: '#fff', fontSize: 10, fontFamily: 'Inter-Bold' },
 })
 
 export default MainTabNavigator

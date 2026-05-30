@@ -1,5 +1,5 @@
 ﻿import React, { memo, useState, useCallback } from 'react'
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,7 +8,6 @@ import { useGetStreamQuery, useSendChatMutation } from '@store/api/liveApi'
 import { formatCurrency } from '@shared/utils/formatCurrency'
 import FastImage from 'react-native-fast-image'
 
-const { width, height } = Dimensions.get('window')
 
 const LiveStreamViewerScreen: React.FC = memo(() => {
   const { colors } = useTheme()

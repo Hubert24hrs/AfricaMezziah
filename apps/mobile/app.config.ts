@@ -1,4 +1,11 @@
 import { ExpoConfig, ConfigContext } from 'expo/config'
+import { existsSync } from 'fs'
+
+// google-services.json is only required for native Firebase builds. Omit it when
+// absent so `expo export` / Expo Go still work without a Firebase project file.
+const googleServicesFile = existsSync('./google-services.json')
+  ? './google-services.json'
+  : undefined
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -40,7 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'USE_BIOMETRIC',
       'USE_FINGERPRINT',
     ],
-    googleServicesFile: './google-services.json',
+    ...(googleServicesFile ? { googleServicesFile } : {}),
   },
   web: {
     favicon: './assets/images/favicon.png',

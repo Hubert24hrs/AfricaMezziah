@@ -1,5 +1,5 @@
 ﻿import React, { memo, useCallback } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
@@ -9,7 +9,6 @@ import { useGetStreamsQuery } from '@store/api/liveApi'
 import EmptyState from '@shared/components/EmptyState'
 import { ROUTES } from '@shared/constants/routes'
 
-const { width } = Dimensions.get('window')
 
 const LiveStreamListScreen: React.FC = memo(() => {
   const { colors } = useTheme()

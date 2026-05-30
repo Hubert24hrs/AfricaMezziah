@@ -51,10 +51,10 @@ const WishlistScreen: React.FC = memo(() => {
           renderItem={({ item }) => (
             <View style={{ padding: 6 }}>
               <ProductCard
-                id={item.id} name={item.name} price={item.price} originalPrice={item.originalPrice}
-                currency={item.currency} image={item.images[0]} rating={item.rating}
-                reviewCount={item.reviewCount} inStock={item.inStock} isWishlisted
-                onPress={handleProductPress} onWishlistToggle={removeFromWishlist} width={CARD_W}
+                product={item}
+                inWishlist
+                onPress={() => handleProductPress(item.id)}
+                onWishlistToggle={() => removeFromWishlist(item.id)}
               />
             </View>
           )}

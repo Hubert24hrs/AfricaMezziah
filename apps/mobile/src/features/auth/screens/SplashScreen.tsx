@@ -1,6 +1,6 @@
 ﻿import React, { memo, useEffect } from 'react'
 import { View, StyleSheet, StatusBar } from 'react-native'
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated'
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { useNavigation } from '@react-navigation/native'
 import { useSelector } from 'react-redux'
 import { RootState } from '@store/store'

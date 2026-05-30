@@ -1,23 +1,12 @@
-import React, { memo, useCallback } from 'react'
+import React, { memo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTheme } from '@shared/hooks/useTheme'
 import ProductCard from '@shared/components/ProductCard'
-
-interface StripProduct {
-  id: string
-  title: string
-  price: number
-  originalPrice?: number
-  imageUrl: string
-  rating?: number
-  reviewCount?: number
-  discountPercent?: number
-  isNew?: boolean
-}
+import type { Product } from '@store/api/productsApi'
 
 interface ProductStripProps {
   title: string
-  products: StripProduct[]
+  products: Product[]
   onProductPress: (id: string) => void
   onSeeAll?: () => void
   badgeType?: 'ai' | 'new'
@@ -42,18 +31,7 @@ const ProductStrip: React.FC<ProductStripProps> = memo(({ title, products, onPro
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
         {products.map(p => (
           <View key={p.id} style={styles.cardWrap}>
-            <ProductCard
-              id={p.id}
-              title={p.title}
-              price={p.price}
-              originalPrice={p.originalPrice}
-              imageUrl={p.imageUrl}
-              rating={p.rating}
-              reviewCount={p.reviewCount}
-              discountPercent={p.discountPercent}
-              isNew={p.isNew}
-              onPress={() => onProductPress(p.id)}
-            />
+            <ProductCard product={p} onPress={() => onProductPress(p.id)} />
           </View>
         ))}
       </ScrollView>

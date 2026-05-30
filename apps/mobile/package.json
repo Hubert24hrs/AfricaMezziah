@@ -15,6 +15,8 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
     "@gorhom/bottom-sheet": "^4.6.3",
+    "@hookform/resolvers": "^5.4.0",
+    "@miblanchard/react-native-slider": "^2.6.0",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-firebase/analytics": "^20.3.0",
@@ -51,12 +53,13 @@
     "jail-monkey": "^2.7.0",
     "libphonenumber-js": "^1.11.13",
     "lottie-react-native": "7.0.0",
-    "nativewind": "^4.0.36",
+    "nativewind": "4.1.23",
     "react": "18.2.0",
     "react-hook-form": "^7.53.0",
     "react-i18next": "^15.0.3",
     "react-native": "0.74.5",
     "react-native-biometrics": "^3.0.1",
+    "react-native-css-interop": "0.1.22",
     "react-native-fast-image": "^8.6.3",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-keychain": "^8.2.0",
@@ -84,6 +87,7 @@
     "@types/three": "^0.170.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "babel-plugin-module-resolver": "^5.0.3",
     "detox": "^20.26.2",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-typescript": "^18.0.0",
@@ -100,7 +104,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterFramework": [
+    "setupFilesAfterEnv": [
       "@testing-library/jest-native/extend-expect"
     ],
     "transformIgnorePatterns": [

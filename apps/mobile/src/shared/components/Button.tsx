@@ -7,7 +7,9 @@ import { useTheme } from '@shared/hooks/useTheme'
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 interface ButtonProps {
-  label: string
+  /** Button text. `title` is accepted as an alias for `label`. */
+  label?: string
+  title?: string
   onPress: () => void
   variant?: ButtonVariant
   loading?: boolean
@@ -20,8 +22,9 @@ interface ButtonProps {
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity)
 
 const Button: React.FC<ButtonProps> = memo(({
-  label, onPress, variant = 'primary', loading = false, disabled = false, style, textStyle, fullWidth = false,
+  label, title, onPress, variant = 'primary', loading = false, disabled = false, style, textStyle, fullWidth = false,
 }) => {
+  const text = label ?? title ?? ''
   const { colors, radius } = useTheme()
   const scale = useSharedValue(1)
 
@@ -72,7 +75,7 @@ const Button: React.FC<ButtonProps> = memo(({
       {loading ? (
         <ActivityIndicator color={v.text.color} size="small" />
       ) : (
-        <Text style={[styles.label, v.text, textStyle]}>{label}</Text>
+        <Text style={[styles.label, v.text, textStyle]}>{text}</Text>
       )}
     </AnimatedTouchable>
   )

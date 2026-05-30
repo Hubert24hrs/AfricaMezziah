@@ -48,7 +48,7 @@ const FilterBar: React.FC<FilterBarProps> = memo(({ onFilter, onSort, activeSort
       activeOpacity={0.75}
     >
       <Text style={[filterStyles.btnText, { color: colors.textPrimary }]}>
-        ↕ {t(`catalog.sort.${activeSort}`, { defaultValue: t('catalog.sort') })}
+        ↕ {activeSort ? t(`catalog.sort.${activeSort}`) : t('catalog.sort')}
       </Text>
     </TouchableOpacity>
   </View>
@@ -82,7 +82,7 @@ const ProductListScreen: React.FC = memo(() => {
 
   const [page, setPage] = useState(1)
   const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [activeSort, setActiveSort] = useState(initialSort ?? 'newest')
+  const [activeSort] = useState(initialSort ?? 'newest')
 
   const queryParams = useMemo(
     () => ({

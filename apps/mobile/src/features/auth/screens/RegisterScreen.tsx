@@ -106,7 +106,6 @@ const RegisterScreen: React.FC = memo(() => {
   const navigation = useNavigation<any>()
   const [register, { isLoading }] = useRegisterMutation()
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null)
-  const [passwordValue, setPasswordValue] = useState('')
 
   const {
     control,
@@ -220,10 +219,7 @@ const RegisterScreen: React.FC = memo(() => {
                   <Input
                     label={t('auth.password')}
                     value={value}
-                    onChangeText={v => {
-                      onChange(v)
-                      setPasswordValue(v)
-                    }}
+                    onChangeText={onChange}
                     onBlur={onBlur}
                     error={errors.password?.message}
                     secureTextEntry

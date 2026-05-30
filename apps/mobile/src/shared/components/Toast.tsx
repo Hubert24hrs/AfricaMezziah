@@ -1,18 +1,22 @@
 import React, { memo, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Animated } from 'react-native'
+import { Text, StyleSheet, Animated } from 'react-native'
 import { useTheme } from '@shared/hooks/useTheme'
 
 interface ToastProps {
   message: string
   type: 'success' | 'error' | 'info' | 'warning'
-  visible: boolean
-  onHide: () => void
+  /** Defaults to true. Component renders nothing when false. */
+  visible?: boolean
+  /** Called when the toast finishes hiding. `onDismiss` is accepted as an alias. */
+  onHide?: () => void
+  onDismiss?: () => void
   duration?: number
 }
 
-const Toast: React.FC<ToastProps> = memo(({ message, type, visible, onHide, duration = 3000 }) => {
+const Toast: React.FC<ToastProps> = memo(({ message, type, visible = true, onHide, onDismiss, duration = 3000 }) => {
   const { colors } = useTheme()
   const opacity = useRef(new Animated.Value(0)).current
+  const handleHide = onHide ?? onDismiss ?? (() => {})
 
   useEffect(() => {
     if (visible) {
@@ -20,9 +24,9 @@ const Toast: React.FC<ToastProps> = memo(({ message, type, visible, onHide, dura
         Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
         Animated.delay(duration),
         Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
-      ]).start(() => onHide())
+      ]).start(() => handleHide())
     }
-  }, [visible, duration, opacity, onHide])
+  }, [visible, duration, opacity, handleHide])
 
   if (!visible) return null
 

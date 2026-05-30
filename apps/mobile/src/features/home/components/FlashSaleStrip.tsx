@@ -1,30 +1,23 @@
-import React, { memo, useEffect, useState, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import React, { memo, useEffect, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { useTheme } from '@shared/hooks/useTheme'
 import ProductCard from '@shared/components/ProductCard'
-
-interface FlashSaleProduct {
-  id: string
-  title: string
-  price: number
-  originalPrice: number
-  imageUrl: string
-  discountPercent: number
-}
+import type { Product } from '@store/api/productsApi'
 
 interface FlashSaleStripProps {
-  endsAt: Date
-  products: FlashSaleProduct[]
+  endTime: string
+  products: Product[]
   onProductPress: (id: string) => void
 }
 
-const FlashSaleStrip: React.FC<FlashSaleStripProps> = memo(({ endsAt, products, onProductPress }) => {
+const FlashSaleStrip: React.FC<FlashSaleStripProps> = memo(({ endTime, products, onProductPress }) => {
   const { colors } = useTheme()
   const [timeLeft, setTimeLeft] = useState('')
 
   useEffect(() => {
+    const end = new Date(endTime).getTime()
     const update = () => {
-      const diff = endsAt.getTime() - Date.now()
+      const diff = end - Date.now()
       if (diff <= 0) { setTimeLeft('00:00:00'); return }
       const h = Math.floor(diff / 3600000)
       const m = Math.floor((diff % 3600000) / 60000)
@@ -34,7 +27,7 @@ const FlashSaleStrip: React.FC<FlashSaleStripProps> = memo(({ endsAt, products, 
     update()
     const timer = setInterval(update, 1000)
     return () => clearInterval(timer)
-  }, [endsAt])
+  }, [endTime])
 
   return (
     <View>
@@ -48,15 +41,7 @@ const FlashSaleStrip: React.FC<FlashSaleStripProps> = memo(({ endsAt, products, 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
         {products.map(p => (
           <View key={p.id} style={styles.cardWrap}>
-            <ProductCard
-              id={p.id}
-              title={p.title}
-              price={p.price}
-              originalPrice={p.originalPrice}
-              imageUrl={p.imageUrl}
-              discountPercent={p.discountPercent}
-              onPress={() => onProductPress(p.id)}
-            />
+            <ProductCard product={p} onPress={() => onProductPress(p.id)} />
           </View>
         ))}
       </ScrollView>

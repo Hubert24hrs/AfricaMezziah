@@ -67,7 +67,7 @@ const AddressBookScreen: React.FC = memo(() => {
   const { colors } = useTheme()
   const navigation = useNavigation<any>()
   const { data: addresses, isLoading } = useGetAddressesQuery()
-  const [deleteAddress, { isLoading: isDeleting }] = useDeleteAddressMutation()
+  const [deleteAddress] = useDeleteAddressMutation()
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null)
 
   const handleEdit = useCallback(

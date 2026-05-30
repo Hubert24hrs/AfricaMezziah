@@ -28,25 +28,25 @@ export const checkDeviceSecurity = (): SecurityResult => {
   }
 }
 
+// Optional native module — loaded lazily so the app still runs without it (e.g. Expo Go).
+const getScreenshotPreventor = (): { enableSecureView: () => void; disableSecureView: () => void } | null => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-screens-screenshot-prevent').default
+  } catch {
+    return null
+  }
+}
+
 export const preventScreenshot = async (screenName: string): Promise<void> => {
   if (Platform.OS === 'android') {
-    try {
-      const { default: RNScreenshotsPreventor } = await import('react-native-screens-screenshot-prevent' as string)
-      RNScreenshotsPreventor.enableSecureView()
-    } catch {
-      // module optional — skip
-    }
+    getScreenshotPreventor()?.enableSecureView()
   }
   Sentry.addBreadcrumb({ message: `Screenshot prevention applied: ${screenName}`, level: 'info' })
 }
 
 export const allowScreenshot = async (): Promise<void> => {
   if (Platform.OS === 'android') {
-    try {
-      const { default: RNScreenshotsPreventor } = await import('react-native-screens-screenshot-prevent' as string)
-      RNScreenshotsPreventor.disableSecureView()
-    } catch {
-      // module optional — skip
-    }
+    getScreenshotPreventor()?.disableSecureView()
   }
 }

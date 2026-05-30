@@ -21,7 +21,7 @@ import Button from '@shared/components/Button'
 import Skeleton from '@shared/components/Skeleton'
 import { ROUTES } from '@shared/constants/routes'
 
-const { width, height } = Dimensions.get('window')
+const { height } = Dimensions.get('window')
 
 /** Visual search screen — camera capture or gallery pick, similarity results grid */
 const VisualSearchScreen: React.FC = memo(() => {

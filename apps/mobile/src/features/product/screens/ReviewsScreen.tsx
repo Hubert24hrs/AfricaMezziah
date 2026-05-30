@@ -1,5 +1,5 @@
-﻿import React, { memo, useState } from 'react'
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native'
+﻿import React, { memo } from 'react'
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'

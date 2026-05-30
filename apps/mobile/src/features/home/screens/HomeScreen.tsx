@@ -16,7 +16,7 @@ import { ROUTES } from '@shared/constants/routes'
 
 const HomeScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors, spacing } = useTheme()
+  const { colors } = useTheme()
   const navigation = useNavigation<any>()
   const { data, isLoading, refetch, isFetching } = useGetHomeDataQuery()
 

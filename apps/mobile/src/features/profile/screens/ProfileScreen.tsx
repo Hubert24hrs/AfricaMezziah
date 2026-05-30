@@ -1,9 +1,8 @@
-﻿import React, { memo, useCallback } from 'react'
+﻿import React, { memo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
-import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
 import { useGetProfileQuery } from '@store/api/userApi'
 import { useAuth } from '@shared/hooks/useAuth'
@@ -26,7 +25,6 @@ const MenuItem: React.FC<MenuItemProps> = memo(({ icon, label, onPress, badge })
 })
 
 const ProfileScreen: React.FC = memo(() => {
-  const { t } = useTranslation()
   const { colors } = useTheme()
   const navigation = useNavigation<any>()
   const { data: profile } = useGetProfileQuery()

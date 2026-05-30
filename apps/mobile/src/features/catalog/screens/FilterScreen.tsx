@@ -9,7 +9,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
-import Slider from '@miblanchard/react-native-slider'
+import { Slider } from '@miblanchard/react-native-slider'
 import { useTheme } from '@shared/hooks/useTheme'
 import Button from '@shared/components/Button'
 import { ROUTES } from '@shared/constants/routes'

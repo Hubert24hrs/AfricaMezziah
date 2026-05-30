@@ -4,13 +4,27 @@ import FastImage from 'react-native-fast-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@shared/hooks/useTheme'
 
-interface ProductCardProps {
+/** Subset of the API `Product` shape that this card can render. */
+interface ProductLike {
   id: string
-  title: string
+  name: string
   price: number
   originalPrice?: number
   currency?: string
-  imageUrl: string
+  images: string[]
+  rating?: number
+  reviewCount?: number
+}
+
+interface ProductCardProps {
+  /** Pass a full product object, OR the individual props below. */
+  product?: ProductLike
+  id?: string
+  title?: string
+  price?: number
+  originalPrice?: number
+  currency?: string
+  imageUrl?: string
   rating?: number
   reviewCount?: number
   discountPercent?: number
@@ -21,11 +35,19 @@ interface ProductCardProps {
   onWishlistToggle?: () => void
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({
-  title, price, originalPrice, currency = '₦', imageUrl, rating = 0, reviewCount = 0,
-  discountPercent, isNew, isHot, inWishlist = false, onPress, onWishlistToggle,
-}) => {
+const ProductCard: React.FC<ProductCardProps> = memo((props) => {
+  const { product, isNew, isHot, inWishlist = false, onPress, onWishlistToggle } = props
   const { colors } = useTheme()
+
+  const title = product?.name ?? props.title ?? ''
+  const price = product?.price ?? props.price ?? 0
+  const originalPrice = product?.originalPrice ?? props.originalPrice
+  const currency = product?.currency ?? props.currency ?? '₦'
+  const imageUrl = product?.images?.[0] ?? props.imageUrl ?? ''
+  const rating = product?.rating ?? props.rating ?? 0
+  const reviewCount = product?.reviewCount ?? props.reviewCount ?? 0
+  const discountPercent = props.discountPercent ??
+    (originalPrice && originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : undefined)
 
   const handleWishlist = useCallback((e: any) => {
     e.stopPropagation()
