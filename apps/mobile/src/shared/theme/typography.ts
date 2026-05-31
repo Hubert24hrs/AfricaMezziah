@@ -11,35 +11,20 @@ export const typography: Record<string, TextStyle> = {
   price: { fontFamily: 'Inter-Bold', fontSize: 18, lineHeight: 24 },
   label: { fontFamily: 'Poppins-Medium', fontSize: 14, lineHeight: 20 },
   button: { fontFamily: 'Poppins-SemiBold', fontSize: 16, lineHeight: 24 },
-  overline: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 10,
-    lineHeight: 16,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
+  overline: { fontFamily: 'Inter-Regular', fontSize: 10, lineHeight: 16, letterSpacing: 1.5 },
 }
 
 export const fontFamilies = {
   playfairBold: 'PlayfairDisplay-Bold',
   playfairSemiBold: 'PlayfairDisplay-SemiBold',
-  poppinsRegular: 'Poppins-Regular',
-  poppinsMedium: 'Poppins-Medium',
-  poppinsSemiBold: 'Poppins-SemiBold',
+  playfairRegular: 'PlayfairDisplay-Regular',
   poppinsBold: 'Poppins-Bold',
-  interRegular: 'Inter-Regular',
-  interMedium: 'Inter-Medium',
+  poppinsSemiBold: 'Poppins-SemiBold',
+  poppinsMedium: 'Poppins-Medium',
+  poppinsRegular: 'Poppins-Regular',
   interBold: 'Inter-Bold',
+  interMedium: 'Inter-Medium',
+  interRegular: 'Inter-Regular',
 }
 
-export const fontSources = {
-  'PlayfairDisplay-Bold': require('@assets/fonts/PlayfairDisplay-Bold.ttf'),
-  'PlayfairDisplay-SemiBold': require('@assets/fonts/PlayfairDisplay-SemiBold.ttf'),
-  'Poppins-Regular': require('@assets/fonts/Poppins-Regular.ttf'),
-  'Poppins-Medium': require('@assets/fonts/Poppins-Medium.ttf'),
-  'Poppins-SemiBold': require('@assets/fonts/Poppins-SemiBold.ttf'),
-  'Poppins-Bold': require('@assets/fonts/Poppins-Bold.ttf'),
-  'Inter-Regular': require('@assets/fonts/Inter-Regular.ttf'),
-  'Inter-Medium': require('@assets/fonts/Inter-Medium.ttf'),
-  'Inter-Bold': require('@assets/fonts/Inter-Bold.ttf'),
-}
+export type Typography = typeof typography

@@ -1,122 +1,151 @@
-﻿import React, { memo, useCallback } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native'
+import React, { memo, useCallback } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import FastImage from 'react-native-fast-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
-import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
 import { useGetCartQuery, useRemoveCartItemMutation, useUpdateCartItemMutation } from '@store/api/cartApi'
-import { formatCurrency } from '@shared/utils/formatCurrency'
+import { ROUTES } from '@constants/routes'
 import Button from '@shared/components/Button'
 import EmptyState from '@shared/components/EmptyState'
-import Skeleton from '@shared/components/Skeleton'
-import { ROUTES } from '@shared/constants/routes'
+import { formatCurrency } from '@shared/utils/formatCurrency'
+import { enableScreenshotPrevention, disableScreenshotPrevention } from '@services/securityService'
+import type { CartItem } from '../cart.types'
 
 const CartScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
+  const { colors, typography, spacing, radius, shadows } = useTheme()
+  const navigation = useNavigation()
+
   const { data: cart, isLoading } = useGetCartQuery()
   const [removeItem] = useRemoveCartItemMutation()
   const [updateItem] = useUpdateCartItemMutation()
 
-  const handleQtyChange = useCallback((id: string, qty: number) => {
-    if (qty < 1) { removeItem(id); return }
-    updateItem({ id, quantity: qty })
-  }, [removeItem, updateItem])
+  const handleRemove = useCallback(
+    (id: string) => {
+      Alert.alert(t('cart.removeItem'), 'Remove this item from your cart?', [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => { void removeItem(id) } },
+      ])
+    },
+    [removeItem, t],
+  )
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-        <View style={{ padding: 16, gap: 12 }}>
-          {[1,2,3].map(i => <Skeleton key={i} height={100} borderRadius={12} />)}
+  const renderItem = useCallback(
+    ({ item }: { item: CartItem }) => (
+      <View style={[styles.item, { backgroundColor: colors.surface, borderRadius: radius.lg, ...shadows.card }]}>
+        <FastImage source={{ uri: item.imageUrl }} style={styles.itemImage} resizeMode={FastImage.resizeMode.cover} />
+        <View style={styles.itemInfo}>
+          <Text style={[typography.body2, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
+          {item.size && <Text style={[typography.caption, { color: colors.textMuted }]}>Size: {item.size}</Text>}
+          <Text style={[typography.price, { color: colors.primary }]}>{formatCurrency(item.price, item.currency)}</Text>
+
+          <View style={styles.qtyRow}>
+            <TouchableOpacity
+              style={[styles.qtyBtn, { borderColor: colors.border, borderRadius: radius.sm }]}
+              onPress={() => { void updateItem({ id: item.id, quantity: Math.max(1, item.quantity - 1) }) }}
+            >
+              <Text style={{ color: colors.textPrimary }}>−</Text>
+            </TouchableOpacity>
+            <Text style={[typography.label, { color: colors.textPrimary, minWidth: 32, textAlign: 'center' }]}>
+              {item.quantity}
+            </Text>
+            <TouchableOpacity
+              style={[styles.qtyBtn, { borderColor: colors.border, borderRadius: radius.sm }]}
+              onPress={() => { void updateItem({ id: item.id, quantity: item.quantity + 1 }) }}
+            >
+              <Text style={{ color: colors.textPrimary }}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
-    )
-  }
 
-  if (!cart?.items.length) {
+        <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.deleteBtn}>
+          <Text style={{ color: colors.error, fontSize: 18 }}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    ),
+    [colors, typography, radius, shadows, updateItem, handleRemove],
+  )
+
+  if (!cart?.items?.length) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-        <EmptyState title={t('cart.empty')} subtitle={t('cart.emptySubtitle')} icon="bag-outline"
-          ctaLabel={t('cart.shopNow')} onCta={() => navigation.navigate(ROUTES.HOME_TAB)} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Text style={[typography.h4, { color: colors.textPrimary, padding: spacing.md }]}>{t('cart.title')}</Text>
+        <EmptyState
+          emoji="🛒"
+          title={t('cart.empty')}
+          subtitle={t('cart.emptySubtitle')}
+          actionLabel={t('cart.shopNow')}
+          // @ts-ignore
+          onAction={() => navigation.navigate(ROUTES.TAB_HOME)}
+        />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('cart.title')}</Text>
-      <FlatList
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <Text style={[typography.h4, { color: colors.textPrimary, paddingHorizontal: spacing.md, paddingVertical: 16 }]}>
+        {t('cart.title')} ({cart.itemCount})
+      </Text>
+
+      <FlashList
         data={cart.items}
+        estimatedItemSize={120}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <View style={[styles.item, { backgroundColor: colors.surface }]}>
-            <FastImage source={{ uri: item.product.images[0] }} style={styles.image} resizeMode={FastImage.resizeMode.cover} />
-            <View style={styles.itemInfo}>
-              <Text style={[styles.itemName, { color: colors.textPrimary }]} numberOfLines={2}>{item.product.name}</Text>
-              <Text style={[styles.itemVariant, { color: colors.textMuted }]}>{item.size} · {item.color}</Text>
-              <Text style={[styles.itemPrice, { color: colors.primary }]}>{formatCurrency(item.price, item.product.currency)}</Text>
-              <View style={styles.qtyRow}>
-                <TouchableOpacity onPress={() => handleQtyChange(item.id, item.quantity - 1)} style={[styles.qtyBtn, { backgroundColor: colors.background }]}>
-                  <Ionicons name="remove" size={16} color={colors.textPrimary} />
-                </TouchableOpacity>
-                <Text style={[styles.qty, { color: colors.textPrimary }]}>{item.quantity}</Text>
-                <TouchableOpacity onPress={() => handleQtyChange(item.id, item.quantity + 1)} style={[styles.qtyBtn, { backgroundColor: colors.background }]}>
-                  <Ionicons name="add" size={16} color={colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.removeBtn}>
-              <Ionicons name="trash-outline" size={20} color={colors.error} />
-            </TouchableOpacity>
-          </View>
-        )}
+        contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, paddingBottom: 200 } as any}
+        renderItem={renderItem}
       />
+
+      {/* Order Summary */}
       <View style={[styles.summary, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('cart.subtotal')}</Text>
-          <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{formatCurrency(cart.subtotal, 'NGN')}</Text>
+          <Text style={[typography.body2, { color: colors.textSecondary }]}>{t('cart.subtotal')}</Text>
+          <Text style={[typography.body2, { color: colors.textPrimary }]}>{formatCurrency(cart.subtotal, cart.currency)}</Text>
         </View>
         {cart.discount > 0 && (
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.success }]}>{t('cart.discount')}</Text>
-            <Text style={[styles.summaryValue, { color: colors.success }]}>-{formatCurrency(cart.discount, 'NGN')}</Text>
+            <Text style={[typography.body2, { color: colors.success }]}>{t('cart.discount')}</Text>
+            <Text style={[typography.body2, { color: colors.success }]}>-{formatCurrency(cart.discount, cart.currency)}</Text>
           </View>
         )}
-        <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>{t('cart.total')}</Text>
-          <Text style={[styles.totalValue, { color: colors.primary }]}>{formatCurrency(cart.total, 'NGN')}</Text>
+        <View style={styles.summaryRow}>
+          <Text style={[typography.body2, { color: colors.textSecondary }]}>{t('cart.shipping')}</Text>
+          <Text style={[typography.body2, { color: cart.shipping === 0 ? colors.success : colors.textPrimary }]}>
+            {cart.shipping === 0 ? t('cart.freeShipping') : formatCurrency(cart.shipping, cart.currency)}
+          </Text>
         </View>
-        <Button label={t('cart.proceedToCheckout')} onPress={() => navigation.navigate(ROUTES.CHECKOUT)} fullWidth />
+        <View style={[styles.summaryRow, styles.totalRow, { borderTopColor: colors.border }]}>
+          <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('cart.total')}</Text>
+          <Text style={[typography.h4, { color: colors.primary }]}>{formatCurrency(cart.total, cart.currency)}</Text>
+        </View>
+        <Button
+          label={t('cart.checkout')}
+          onPress={() => {
+            void enableScreenshotPrevention()
+            // @ts-ignore
+            navigation.navigate(ROUTES.CHECKOUT)
+          }}
+          variant="primary"
+        />
       </View>
     </SafeAreaView>
   )
 })
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  title: { fontFamily: 'Poppins-SemiBold', fontSize: 20, padding: 16, paddingBottom: 8 },
-  list: { padding: 12, gap: 12 },
-  item: { flexDirection: 'row', borderRadius: 12, overflow: 'hidden', padding: 12, gap: 12 },
-  image: { width: 80, height: 80, borderRadius: 8 },
+  container: { flex: 1 },
+  item: { flexDirection: 'row', padding: 12, gap: 12 },
+  itemImage: { width: 80, height: 100, borderRadius: 8 },
   itemInfo: { flex: 1, gap: 4 },
-  itemName: { fontFamily: 'Poppins-Regular', fontSize: 13 },
-  itemVariant: { fontFamily: 'Poppins-Regular', fontSize: 11 },
-  itemPrice: { fontFamily: 'Inter-Bold', fontSize: 15 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  qtyBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  qty: { fontFamily: 'Poppins-SemiBold', fontSize: 15, minWidth: 20, textAlign: 'center' },
-  removeBtn: { padding: 4 },
-  summary: { padding: 16, borderTopWidth: 1, gap: 10 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  qtyBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  deleteBtn: { padding: 4 },
+  summary: { padding: 16, gap: 8, borderTopWidth: 1 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  summaryLabel: { fontFamily: 'Poppins-Regular', fontSize: 14 },
-  summaryValue: { fontFamily: 'Poppins-SemiBold', fontSize: 14 },
-  totalRow: { marginBottom: 4 },
-  totalLabel: { fontFamily: 'Poppins-SemiBold', fontSize: 16 },
-  totalValue: { fontFamily: 'Inter-Bold', fontSize: 18 },
+  totalRow: { paddingTop: 8, borderTopWidth: 1, marginTop: 4, marginBottom: 12 },
 })
 
 export default CartScreen

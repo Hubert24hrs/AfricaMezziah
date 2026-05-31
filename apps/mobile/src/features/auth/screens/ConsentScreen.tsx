@@ -1,45 +1,79 @@
-﻿import React, { memo } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import React, { memo, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useDispatch } from 'react-redux'
-import { giveConsent } from '@features/auth/authSlice'
-import { initAnalytics } from '@services/analyticsService'
-import { ROUTES } from '@shared/constants/routes'
-import Button from '@shared/components/Button'
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '@shared/hooks/useTheme'
+import { useAppDispatch } from '@store/store'
+import { setHasGivenConsent } from '@store/appSlice'
+import { ROUTES } from '@constants/routes'
+import type { AuthStackParamList } from '@navigation/AuthNavigator'
+
+type Nav = NativeStackNavigationProp<AuthStackParamList>
 
 const ConsentScreen: React.FC = memo(() => {
-  const navigation = useNavigation<any>()
-  const dispatch = useDispatch()
+  const { t } = useTranslation()
+  const { colors, typography, spacing, radius, shadows } = useTheme()
+  const navigation = useNavigation<Nav>()
+  const dispatch = useAppDispatch()
 
-  const handleAccept = () => {
-    dispatch(giveConsent())
-    initAnalytics(true)
-    navigation.replace(ROUTES.LOGIN)
-  }
+  const [analytics, setAnalytics] = useState(true)
+  const [marketing, setMarketing] = useState(false)
 
-  const handleDecline = () => {
-    initAnalytics(false)
-    dispatch(giveConsent())
+  const handleAccept = useCallback(() => {
+    dispatch(setHasGivenConsent(true))
     navigation.replace(ROUTES.LOGIN)
-  }
+  }, [dispatch, navigation])
+
+  const handleDecline = useCallback(() => {
+    dispatch(setHasGivenConsent(true))
+    navigation.replace(ROUTES.LOGIN)
+  }, [dispatch, navigation])
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Privacy & Consent</Text>
-        <Text style={styles.body}>
-          Africa Mezziah collects certain data to provide you with a personalized shopping experience. We collect:{'\n\n'}
-          • Account information (name, email, phone){'\n'}
-          • Shopping activity and preferences{'\n'}
-          • Device information for security{'\n'}
-          • Location for delivery purposes{'\n\n'}
-          We never sell your data. You can withdraw consent at any time in Privacy Settings.
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={[typography.h2, styles.title, { color: colors.textPrimary }]}>
+          {t('auth.consent.title')}
         </Text>
+        <Text style={[typography.body2, styles.subtitle, { color: colors.textSecondary }]}>
+          {t('auth.consent.subtitle')}
+        </Text>
+
+        {[
+          { key: 'functional', label: t('auth.consent.functional'), desc: t('auth.consent.functionalDesc'), value: true, disabled: true, onChange: () => {} },
+          { key: 'analytics', label: t('auth.consent.analytics'), desc: t('auth.consent.analyticsDesc'), value: analytics, disabled: false, onChange: setAnalytics },
+          { key: 'marketing', label: t('auth.consent.marketing'), desc: t('auth.consent.marketingDesc'), value: marketing, disabled: false, onChange: setMarketing },
+        ].map(item => (
+          <View
+            key={item.key}
+            style={[styles.consentRow, { backgroundColor: colors.surface, borderRadius: radius.lg, borderColor: colors.border, borderWidth: 1, ...shadows.card }]}
+          >
+            <View style={styles.consentText}>
+              <Text style={[typography.label, { color: colors.textPrimary }]}>{item.label}</Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>{item.desc}</Text>
+            </View>
+            <Switch
+              value={item.value}
+              onValueChange={item.onChange}
+              disabled={item.disabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.textPrimary}
+            />
+          </View>
+        ))}
       </ScrollView>
-      <View style={styles.footer}>
-        <Button label="Accept & Continue" onPress={handleAccept} fullWidth />
-        <TouchableOpacity onPress={handleDecline} style={styles.decline}>
-          <Text style={styles.declineText}>Decline non-essential data</Text>
+
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          onPress={handleAccept}
+          activeOpacity={0.75}
+        >
+          <Text style={[typography.button, { color: colors.textInverse }]}>{t('auth.consent.accept')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleDecline} activeOpacity={0.75}>
+          <Text style={[typography.body2, { color: colors.textMuted, textAlign: 'center' }]}>{t('auth.consent.decline')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -47,13 +81,14 @@ const ConsentScreen: React.FC = memo(() => {
 })
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F1A' },
-  content: { padding: 24, paddingTop: 80 },
-  title: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 28, color: '#C9A84C', marginBottom: 24 },
-  body: { fontFamily: 'Poppins-Regular', fontSize: 14, color: '#B0B0C3', lineHeight: 24 },
-  footer: { padding: 24, gap: 12 },
-  decline: { alignItems: 'center', padding: 12 },
-  declineText: { fontFamily: 'Poppins-Regular', fontSize: 14, color: '#6B6B80' },
+  container: { flex: 1 },
+  scroll: { padding: 24, paddingTop: 64, gap: 16 },
+  title: { marginBottom: 8 },
+  subtitle: { marginBottom: 8 },
+  consentRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
+  consentText: { flex: 1 },
+  footer: { padding: 24, gap: 16, borderTopWidth: 1 },
+  primaryBtn: { height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 })
 
 export default ConsentScreen

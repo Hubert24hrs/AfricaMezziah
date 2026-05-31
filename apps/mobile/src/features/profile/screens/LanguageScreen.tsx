@@ -1,22 +1,13 @@
-import React, { memo, useCallback, useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import React, { memo, useCallback } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { MMKV } from 'react-native-mmkv'
-import { FlashList } from '@shopify/flash-list'
 import { useTheme } from '@shared/hooks/useTheme'
+import { useAppDispatch } from '@store/store'
+import { setLanguage } from '@store/appSlice'
 
-const storage = new MMKV({ id: 'app-prefs' })
-
-interface Language {
-  code: string
-  name: string
-  nativeName: string
-  flag: string
-}
-
-const LANGUAGES: Language[] = [
+const LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
   { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇰🇪' },
@@ -25,119 +16,57 @@ const LANGUAGES: Language[] = [
   { code: 'ig', name: 'Igbo', nativeName: 'Igbo', flag: '🇳🇬' },
 ]
 
-interface LanguageRowProps {
-  item: Language
-  isSelected: boolean
-  onSelect: (code: string) => void
-  colors: ReturnType<typeof useTheme>['colors']
-}
-
-const LanguageRow: React.FC<LanguageRowProps> = memo(({ item, isSelected, onSelect, colors }) => {
-  const handlePress = useCallback(() => onSelect(item.code), [item.code, onSelect])
-  return (
-    <TouchableOpacity
-      style={[
-        styles.row,
-        { borderBottomColor: colors.border },
-        isSelected && styles.rowActive,
-      ]}
-      onPress={handlePress}
-      activeOpacity={0.75}
-    >
-      <Text style={styles.flag}>{item.flag}</Text>
-      <View style={styles.info}>
-        <Text style={[styles.name, { color: colors.textPrimary }]}>{item.name}</Text>
-        <Text style={[styles.nativeName, { color: colors.textMuted }]}>{item.nativeName}</Text>
-      </View>
-      {isSelected && (
-        <Text style={[styles.check, { color: colors.primary }]}>✓</Text>
-      )}
-    </TouchableOpacity>
-  )
-})
-
-/** Language selection screen with all supported languages */
 const LanguageScreen: React.FC = memo(() => {
   const { t, i18n } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const [selectedCode, setSelectedCode] = useState(i18n.language ?? 'en')
+  const { colors, typography, spacing, radius } = useTheme()
+  const navigation = useNavigation()
+  const dispatch = useAppDispatch()
 
-  const handleSelect = useCallback(
-    (code: string) => {
-      setSelectedCode(code)
-      i18n.changeLanguage(code)
-      storage.set('app_language', code)
-    },
-    [i18n],
-  )
-
-  const renderItem = useCallback(
-    ({ item }: { item: Language }) => (
-      <LanguageRow
-        item={item}
-        isSelected={selectedCode === item.code}
-        onSelect={handleSelect}
-        colors={colors}
-      />
-    ),
-    [selectedCode, handleSelect, colors],
-  )
-
-  const sheetStyles = useMemo(() => createStyles(colors), [colors])
+  const handleSelect = useCallback(async (code: string) => {
+    await i18n.changeLanguage(code)
+    dispatch(setLanguage(code))
+    navigation.goBack()
+  }, [i18n, dispatch, navigation])
 
   return (
-    <SafeAreaView style={sheetStyles.container}>
-      <View style={sheetStyles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <Text style={sheetStyles.backText}>←</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={[typography.body1, { color: colors.primary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={sheetStyles.headerTitle}>{t('language.title')}</Text>
-        <View style={{ width: 32 }} />
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('profile.language')}</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <FlashList
+      <FlatList
         data={LANGUAGES}
         keyExtractor={item => item.code}
-        renderItem={renderItem}
-        estimatedItemSize={70}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.item, { backgroundColor: colors.surface, borderRadius: radius.lg, borderColor: i18n.language === item.code ? colors.primary : colors.border, borderWidth: 1.5 }]}
+            onPress={() => { void handleSelect(item.code) }}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.flag}>{item.flag}</Text>
+            <View style={styles.itemText}>
+              <Text style={[typography.body1, { color: colors.textPrimary }]}>{item.nativeName}</Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>{item.name}</Text>
+            </View>
+            {i18n.language === item.code && <Text style={{ color: colors.primary }}>✓</Text>}
+          </TouchableOpacity>
+        )}
       />
     </SafeAreaView>
   )
 })
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    gap: 16,
-  },
-  rowActive: {},
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  item: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
   flag: { fontSize: 32 },
-  info: { flex: 1 },
-  name: { fontFamily: 'Poppins-SemiBold', fontSize: 16 },
-  nativeName: { fontFamily: 'Poppins-Regular', fontSize: 13, marginTop: 2 },
-  check: { fontFamily: 'Inter-Bold', fontSize: 20 },
+  itemText: { flex: 1 },
 })
-
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backText: { fontFamily: 'Poppins-Medium', fontSize: 22, color: colors.textSecondary },
-    headerTitle: { fontFamily: 'Poppins-SemiBold', fontSize: 18, color: colors.textPrimary },
-  })
 
 export default LanguageScreen

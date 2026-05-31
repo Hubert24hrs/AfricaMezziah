@@ -4,42 +4,33 @@ module.exports = {
   parserOptions: {
     project: './tsconfig.json',
     tsconfigRootDir: __dirname,
-    ecmaFeatures: { jsx: true },
   },
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
   extends: [
     'airbnb-typescript',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:react-native/all',
-  ],
-  plugins: [
-    '@typescript-eslint',
-    'react',
-    'react-native',
-    'react-hooks',
-    'import',
   ],
   rules: {
     'no-console': 'error',
     '@typescript-eslint/no-explicit-any': 'error',
-    'react/react-in-jsx-scope': 'off',
-    'react/prop-types': 'off',
-    'react/require-default-props': 'off',
-    'import/prefer-default-export': 'off',
-    'react-native/no-color-literals': 'off',
-    'react-native/no-raw-text': ['error', { skip: [] }],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    'react/function-component-definition': [
-      'error',
-      { namedComponents: 'arrow-function' },
-    ],
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    'import/prefer-default-export': 'off',
+    'react-native/no-unused-styles': 'error',
+    'react-native/no-inline-styles': 'warn',
+    'react-hooks/exhaustive-deps': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+  },
+  settings: {
+    react: { version: 'detect' },
   },
   env: {
     'react-native/react-native': true,
-  },
-  settings: {
-    'import/resolver': {
-      typescript: { alwaysTryTypes: true },
-    },
   },
 }

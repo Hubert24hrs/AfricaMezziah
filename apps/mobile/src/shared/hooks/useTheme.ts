@@ -1,18 +1,12 @@
 import { useSelector } from 'react-redux'
-import { RootState } from '@store/store'
-import { darkColors, lightColors, typography, spacing, radius, shadows, glassStyle } from '@shared/theme'
+import { useMemo } from 'react'
+import { darkTheme, lightTheme, Theme } from '@shared/theme'
 
-export const useTheme = () => {
-  const isDark = useSelector((state: RootState) => state.theme.isDark)
-  const colors = isDark ? darkColors : lightColors
+interface RootStateForTheme {
+  app: { isDarkMode: boolean }
+}
 
-  return {
-    colors,
-    typography,
-    spacing,
-    radius,
-    shadows,
-    glassStyle,
-    isDark,
-  }
+export const useTheme = (): Theme => {
+  const isDarkMode = useSelector((state: RootStateForTheme) => state.app.isDarkMode)
+  return useMemo(() => (isDarkMode ? darkTheme : lightTheme), [isDarkMode])
 }

@@ -1,277 +1,74 @@
-import React, { memo, useCallback, useMemo } from 'react'
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native'
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
-import { useForm, Controller } from 'react-hook-form'
+import React, { memo, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
-import { useAddAddressMutation, useUpdateAddressMutation, Address } from '@store/api/userApi'
+import { useAddAddressMutation } from '@store/api/userApi'
 import Input from '@shared/components/Input'
 import Button from '@shared/components/Button'
-import Toast from '@shared/components/Toast'
-import { useState } from 'react'
 
-const addressSchema = z.object({
-  label: z.string().min(1, 'Label required'),
-  line1: z.string().min(1, 'Address required'),
+const schema = z.object({
+  label: z.string().min(1),
+  line1: z.string().min(5),
   line2: z.string().optional(),
-  city: z.string().min(1, 'City required'),
-  state: z.string().min(1, 'State required'),
-  country: z.string().min(1, 'Country required'),
-  postalCode: z.string().min(1, 'Postal code required'),
-  isDefault: z.boolean(),
+  city: z.string().min(2),
+  state: z.string().min(2),
+  country: z.string().min(2),
+  postalCode: z.string().min(3),
 })
 
-type AddressForm = z.infer<typeof addressSchema>
+type FormData = z.infer<typeof schema>
 
-type AddressRouteParams = {
-  Address: { address?: Address }
-}
-
-/** Address add/edit form with React Hook Form + Zod */
 const AddressScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const route = useRoute<RouteProp<AddressRouteParams, 'Address'>>()
-  const existingAddress = route.params?.address
+  const { colors, typography, spacing } = useTheme()
+  const navigation = useNavigation()
+  const [addAddress, { isLoading }] = useAddAddressMutation()
 
-  const [addAddress, { isLoading: isAdding }] = useAddAddressMutation()
-  const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation()
-  const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null)
-
-  const isLoading = isAdding || isUpdating
-  const isEdit = !!existingAddress
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<AddressForm>({
-    resolver: zodResolver(addressSchema),
-    defaultValues: {
-      label: existingAddress?.label ?? '',
-      line1: existingAddress?.line1 ?? '',
-      line2: existingAddress?.line2 ?? '',
-      city: existingAddress?.city ?? '',
-      state: existingAddress?.state ?? '',
-      country: existingAddress?.country ?? 'Nigeria',
-      postalCode: existingAddress?.postalCode ?? '',
-      isDefault: existingAddress?.isDefault ?? false,
-    },
+  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
   })
 
   const onSubmit = useCallback(
-    async (data: AddressForm) => {
-      try {
-        if (isEdit && existingAddress) {
-          await updateAddress({ id: existingAddress.id, ...data }).unwrap()
-        } else {
-          await addAddress(data).unwrap()
-        }
-        setToast({ msg: t('addresses.saved'), type: 'success' })
-        setTimeout(() => navigation.goBack(), 1000)
-      } catch {
-        setToast({ msg: t('errors.generic'), type: 'error' })
-      }
+    async (data: FormData) => {
+      await addAddress({ ...data, isDefault: false })
+      navigation.goBack()
     },
-    [isEdit, existingAddress, addAddress, updateAddress, navigation, t],
+    [addAddress, navigation],
   )
 
-  const styles = useMemo(() => createStyles(colors), [colors])
-
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>
-            {isEdit ? t('addresses.editAddress') : t('addresses.addAddress')}
-          </Text>
-          <Button
-            title={t('common.save')}
-            onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            variant="ghost"
-          />
-        </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={[typography.body1, { color: colors.primary }]}>←</Text>
+        </TouchableOpacity>
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('settings.addAddress')}</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Controller
-            control={control}
-            name="label"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t('addresses.label')}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.label?.message}
-                placeholder={t('addresses.labelPlaceholder')}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="line1"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t('addresses.line1')}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.line1?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="line2"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t('addresses.line2')}
-                value={value ?? ''}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.line2?.message}
-              />
-            )}
-          />
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Controller
-                control={control}
-                name="city"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label={t('addresses.city')}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.city?.message}
-                  />
-                )}
-              />
-            </View>
-            <View style={styles.half}>
-              <Controller
-                control={control}
-                name="state"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label={t('addresses.state')}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.state?.message}
-                  />
-                )}
-              />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Controller
-                control={control}
-                name="country"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label={t('addresses.country')}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.country?.message}
-                  />
-                )}
-              />
-            </View>
-            <View style={styles.half}>
-              <Controller
-                control={control}
-                name="postalCode"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label={t('addresses.postalCode')}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.postalCode?.message}
-                    keyboardType="number-pad"
-                  />
-                )}
-              />
-            </View>
-          </View>
-
-          <Controller
-            control={control}
-            name="isDefault"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.switchRow}>
-                <Text style={[styles.switchLabel, { color: colors.textPrimary }]}>
-                  {t('addresses.setAsDefault')}
-                </Text>
-                <Switch
-                  value={value}
-                  onValueChange={onChange}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.textPrimary}
-                />
-              </View>
-            )}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onDismiss={() => setToast(null)} />}
+      <ScrollView contentContainerStyle={{ padding: spacing.md }} keyboardShouldPersistTaps="handled">
+        <Input control={control} name="label" label="Label (e.g. Home, Office)" error={errors.label?.message} />
+        <Input control={control} name="line1" label="Street Address" error={errors.line1?.message} />
+        <Input control={control} name="line2" label="Apartment, Suite (optional)" error={errors.line2?.message} />
+        <Input control={control} name="city" label="City" error={errors.city?.message} />
+        <Input control={control} name="state" label="State / Province" error={errors.state?.message} />
+        <Input control={control} name="country" label="Country" error={errors.country?.message} />
+        <Input control={control} name="postalCode" label="Postal Code" error={errors.postalCode?.message} />
+        <Button label={t('common.save')} onPress={handleSubmit(onSubmit)} loading={isLoading} variant="primary" style={styles.btn} />
+      </ScrollView>
     </SafeAreaView>
   )
 })
 
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    flex: { flex: 1 },
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    title: { fontFamily: 'Poppins-SemiBold', fontSize: 18, color: colors.textPrimary },
-    content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 4 },
-    row: { flexDirection: 'row', gap: 12 },
-    half: { flex: 1 },
-    switchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 16,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      marginTop: 8,
-    },
-    switchLabel: { fontFamily: 'Poppins-Medium', fontSize: 15 },
-  })
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  btn: { marginTop: 8 },
+})
 
 export default AddressScreen

@@ -1,41 +1,69 @@
-﻿import React, { memo, useEffect } from 'react'
-import { View, StyleSheet, StatusBar } from 'react-native'
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
+import React, { memo, useEffect, useRef } from 'react'
+import { View, StyleSheet, Animated, Dimensions } from 'react-native'
+import LottieView from 'lottie-react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useSelector } from 'react-redux'
-import { RootState } from '@store/store'
-import { ROUTES } from '@shared/constants/routes'
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { useAppSelector } from '@store/store'
+import { colors } from '@shared/theme'
+import { ROUTES } from '@constants/routes'
+import type { AuthStackParamList } from '@navigation/AuthNavigator'
+
+const { width } = Dimensions.get('window')
+type Nav = NativeStackNavigationProp<AuthStackParamList>
 
 const SplashScreen: React.FC = memo(() => {
-  const navigation = useNavigation<any>()
-  const onboardingComplete = useSelector((state: RootState) => state.auth.onboardingComplete)
-  const opacity = useSharedValue(0)
-  const scale = useSharedValue(0.7)
+  const navigation = useNavigation<Nav>()
+  const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated)
+  const hasSeenOnboarding = useAppSelector(state => state.app.hasSeenOnboarding)
+  const opacity = useRef(new Animated.Value(0)).current
+  const lottieRef = useRef<LottieView>(null)
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 800 })
-    scale.value = withTiming(1, { duration: 800 })
-    const timer = setTimeout(() => {
-      navigation.replace(onboardingComplete ? ROUTES.LOGIN : ROUTES.ONBOARDING)
-    }, 2500)
-    return () => clearTimeout(timer)
-  }, [navigation, onboardingComplete, opacity, scale])
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start()
 
-  const logoStyle = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }))
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        return
+      }
+      if (!hasSeenOnboarding) {
+        navigation.replace(ROUTES.ONBOARDING)
+      } else {
+        navigation.replace(ROUTES.LOGIN)
+      }
+    }, 2800)
+
+    return () => clearTimeout(timer)
+  }, [isAuthenticated, hasSeenOnboarding, navigation, opacity])
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
-      <Animated.Text style={[styles.logo, logoStyle]}>Africa Mezziah</Animated.Text>
-      <Animated.Text style={[styles.tagline, logoStyle]}>Where African Elegance Meets Futuristic Fashion</Animated.Text>
+      <Animated.View style={[styles.content, { opacity }]}>
+        <LottieView
+          ref={lottieRef}
+          source={require('@assets/animations/logo-splash.json')}
+          autoPlay
+          loop={false}
+          style={styles.lottie}
+          resizeMode="contain"
+        />
+      </Animated.View>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F1A', alignItems: 'center', justifyContent: 'center' },
-  logo: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 32, color: '#C9A84C', textAlign: 'center' },
-  tagline: { fontFamily: 'Poppins-Regular', fontSize: 13, color: '#B0B0C3', textAlign: 'center', marginTop: 12, paddingHorizontal: 32 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: { alignItems: 'center' },
+  lottie: { width: width * 0.6, height: width * 0.6 },
 })
 
 export default SplashScreen

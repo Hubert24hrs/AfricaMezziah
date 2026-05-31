@@ -1,9 +1,17 @@
-﻿import { useCallback } from 'react'
-import { logEvent, EVENTS } from '@services/analyticsService'
+import { useCallback } from 'react'
+import { logEvent, logScreenView, EVENTS } from '@services/analyticsService'
 
 export const useAnalytics = () => {
-  const track = useCallback((event: string, params?: Record<string, unknown>) => {
-    logEvent(event, params)
+  const trackEvent = useCallback(
+    async (event: string, params?: Record<string, string | number | boolean>) => {
+      await logEvent(event, params)
+    },
+    [],
+  )
+
+  const trackScreen = useCallback(async (screenName: string) => {
+    await logScreenView(screenName)
   }, [])
-  return { track, EVENTS }
+
+  return { trackEvent, trackScreen, EVENTS }
 }

@@ -1,65 +1,19 @@
 {
   "common": {
+    "appName": "Africa Mezziah",
     "loading": "Chargement...",
-    "error": "Une erreur s'est produite",
+    "error": "Une erreur est survenue",
     "retry": "Réessayer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
     "save": "Enregistrer",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "close": "Fermer",
+    "done": "Terminé",
     "next": "Suivant",
     "back": "Retour",
     "skip": "Passer",
-    "done": "Terminé",
-    "search": "Rechercher",
-    "filter": "Filtrer",
-    "sort": "Trier",
-    "seeAll": "Voir Tout",
-    "addToCart": "Ajouter au Panier",
-    "buyNow": "Acheter",
-    "share": "Partager",
-    "report": "Signaler",
-    "or": "ou",
-    "yes": "Oui",
-    "no": "Non",
-    "ok": "OK",
-    "noResults": "Aucun résultat trouvé",
-    "pullToRefresh": "Tirer pour rafraîchir"
-  },
-  "auth": {
-    "login": "Connexion",
-    "register": "Créer un compte",
-    "logout": "Déconnexion",
-    "email": "Adresse e-mail",
-    "password": "Mot de passe",
-    "confirmPassword": "Confirmer le mot de passe",
-    "fullName": "Nom complet",
-    "phone": "Numéro de téléphone",
-    "forgotPassword": "Mot de passe oublié ?",
-    "noAccount": "Vous n'avez pas de compte ?",
-    "hasAccount": "Déjà un compte ?",
-    "welcomeBack": "Bon retour",
-    "createAccountSubtitle": "Rejoignez Africa Mezziah"
-  },
-  "home": {
-    "flashSale": "Vente Flash",
-    "endsIn": "Se termine dans",
-    "aiPicks": "Sélectionné Pour Vous",
-    "trending": "Tendances",
-    "newArrivals": "Nouveautés",
-    "superDeals": "Super Offres",
-    "freeShipping": "Livraison gratuite pour les commandes supérieures à {{amount}}"
-  },
-  "profile": {
-    "title": "Profil",
-    "editProfile": "Modifier le Profil",
-    "logout": "Déconnexion"
-  },
-  "errors": {
-    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
-    "server": "Erreur serveur. Veuillez réessayer plus tard.",
-    "generic": "Une erreur s'est produite. Veuillez réessayer."
+    "seeAll": "Voir tout",
+    "search": "Rechercher"
   }
 }

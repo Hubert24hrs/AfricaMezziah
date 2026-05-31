@@ -1,55 +1,69 @@
-import React, { Component } from 'react'
+import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import * as Sentry from '@sentry/react-native'
+import { colors, typography } from '@shared/theme'
 
 interface Props {
-  children: React.ReactNode
-  fallback?: React.ReactNode
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 interface State {
   hasError: boolean
-  error?: Error
 }
 
 class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+  static getDerivedStateFromError(): State {
+    return { hasError: true }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Sentry.captureException(error, { extra: info })
-    console.error('[ErrorBoundary]', error, info)
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    Sentry.withScope(scope => {
+      scope.setExtra('componentStack', info.componentStack)
+      Sentry.captureException(error)
+    })
   }
 
-  retry = () => this.setState({ hasError: false, error: undefined })
+  handleReset = () => {
+    this.setState({ hasError: false })
+  }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback
+
       return (
         <View style={styles.container}>
           <Text style={styles.emoji}>⚠️</Text>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>{this.state.error?.message}</Text>
-          <TouchableOpacity style={styles.button} onPress={this.retry} activeOpacity={0.75}>
-            <Text style={styles.buttonText}>Try Again</Text>
+          <Text style={[typography.h4, { color: colors.textPrimary, textAlign: 'center' }]}>
+            Something went wrong
+          </Text>
+          <Text style={[typography.body2, { color: colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
+            This section encountered an error
+          </Text>
+          <TouchableOpacity style={styles.btn} onPress={this.handleReset}>
+            <Text style={[typography.label, { color: colors.primary }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       )
     }
+
     return this.props.children
   }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#0F0F1A' },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: colors.background,
+  },
   emoji: { fontSize: 48, marginBottom: 16 },
-  title: { color: '#FFFFFF', fontFamily: 'Poppins-SemiBold', fontSize: 20, marginBottom: 8 },
-  message: { color: '#B0B0C3', fontFamily: 'Poppins-Regular', fontSize: 14, textAlign: 'center', marginBottom: 24 },
-  button: { backgroundColor: '#C9A84C', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 24 },
-  buttonText: { color: '#0F0F1A', fontFamily: 'Poppins-SemiBold', fontSize: 16 },
+  btn: { marginTop: 24, padding: 12 },
 })
 
 export default ErrorBoundary

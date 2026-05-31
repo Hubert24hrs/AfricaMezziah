@@ -1,71 +1,77 @@
-﻿import React, { memo, useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native'
+import React, { memo, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
-import { useRequestReturnMutation } from '@store/api/ordersApi'
+import { useCreateReturnRequestMutation } from '@store/api/ordersApi'
 import Button from '@shared/components/Button'
 
-const REASONS = ['Wrong item received', 'Item damaged', 'Does not match description', 'Changed my mind', 'Quality issue']
+const REASONS = ['Wrong size', 'Defective item', 'Not as described', 'Changed my mind', 'Damaged in transit', 'Other']
 
 const ReturnRequestScreen: React.FC = memo(() => {
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const route = useRoute<any>()
+  const { t } = useTranslation()
+  const { colors, typography, spacing, radius } = useTheme()
+  const navigation = useNavigation()
+  const route = useRoute()
+  // @ts-ignore
   const { orderId } = route.params ?? {}
-  const [requestReturn, { isLoading }] = useRequestReturnMutation()
-  const [reason, setReason] = useState('')
-  const [description, setDescription] = useState('')
+  const [reason, setReason] = useState<string | null>(null)
+  const [createReturn, { isLoading }] = useCreateReturnRequestMutation()
 
-  const handleSubmit = async () => {
-    if (!reason) return
-    try {
-      await requestReturn({ orderId, items: [], reason, description }).unwrap()
-      navigation.goBack()
-    } catch {}
-  }
+  const handleSubmit = useCallback(async () => {
+    if (!reason) {
+      Alert.alert('Select Reason', 'Please select a reason for return')
+      return
+    }
+    await createReturn({ orderId, items: [], reason, description: reason })
+    navigation.goBack()
+  }, [reason, orderId, createReturn, navigation])
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Ionicons name="arrow-back" size={24} color={colors.textPrimary} /></TouchableOpacity>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Return Request</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={[typography.body1, { color: colors.primary }]}>←</Text>
+        </TouchableOpacity>
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('orders.returnRequest')}</Text>
         <View style={{ width: 24 }} />
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.label, { color: colors.textPrimary }]}>Reason for Return</Text>
+
+      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>Reason for Return</Text>
         {REASONS.map(r => (
-          <TouchableOpacity key={r} style={[styles.option, { backgroundColor: colors.surface, borderColor: reason === r ? colors.primary : 'transparent', borderWidth: 1.5 }]} onPress={() => setReason(r)}>
-            <Text style={[styles.optionText, { color: reason === r ? colors.primary : colors.textPrimary }]}>{r}</Text>
-            {reason === r && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
+          <TouchableOpacity
+            key={r}
+            style={[
+              styles.option,
+              {
+                backgroundColor: colors.surface,
+                borderRadius: radius.md,
+                borderColor: reason === r ? colors.primary : colors.border,
+                borderWidth: 1.5,
+              },
+            ]}
+            onPress={() => setReason(r)}
+          >
+            <Text style={[typography.body1, { color: colors.textPrimary }]}>{r}</Text>
+            {reason === r && <Text style={{ color: colors.primary }}>✓</Text>}
           </TouchableOpacity>
         ))}
-        <Text style={[styles.label, { color: colors.textPrimary, marginTop: 16 }]}>Additional Details</Text>
-        <TextInput
-          style={[styles.textarea, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Describe the issue..."
-          placeholderTextColor={colors.textMuted}
-          multiline
-          numberOfLines={4}
-        />
-        <Button label="Submit Return Request" onPress={handleSubmit} loading={isLoading} fullWidth style={{ marginTop: 24 }} disabled={!reason} />
       </ScrollView>
+
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <Button label="Submit Return Request" onPress={handleSubmit} loading={isLoading} variant="primary" />
+      </View>
     </SafeAreaView>
   )
 })
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  title: { fontFamily: 'Poppins-SemiBold', fontSize: 18 },
-  content: { padding: 16, gap: 8 },
-  label: { fontFamily: 'Poppins-SemiBold', fontSize: 15, marginBottom: 4 },
-  option: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 10 },
-  optionText: { fontFamily: 'Poppins-Regular', fontSize: 14 },
-  textarea: { borderRadius: 10, borderWidth: 1, padding: 14, fontFamily: 'Poppins-Regular', fontSize: 14, minHeight: 100, textAlignVertical: 'top' },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+  footer: { padding: 24, borderTopWidth: 1 },
 })
 
 export default ReturnRequestScreen

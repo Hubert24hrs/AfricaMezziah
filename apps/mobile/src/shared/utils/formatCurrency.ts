@@ -1,28 +1,16 @@
-export const CURRENCY_SYMBOLS: Record<string, string> = {
+const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: '₦',
   USD: '$',
   GBP: '£',
   EUR: '€',
   KES: 'KSh',
-  GHS: 'GH₵',
+  GHS: '₵',
 }
 
-export const formatCurrency = (
-  amount: number,
-  currency = 'NGN',
-  showSymbol = true,
-): string => {
-  const formatted = new Intl.NumberFormat('en-NG', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-
-  if (!showSymbol) return formatted
+export const formatCurrency = (amount: number, currency = 'NGN'): string => {
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency
-  return `${symbol}${formatted}`
+  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export const formatDiscount = (original: number, sale: number): string => {
-  const pct = Math.round(((original - sale) / original) * 100)
-  return `-${pct}%`
-}
+export const formatDiscount = (original: number, sale: number): number =>
+  Math.round(((original - sale) / original) * 100)

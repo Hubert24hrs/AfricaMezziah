@@ -1,140 +1,68 @@
-import React, { memo, useCallback, useMemo, useState } from 'react'
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import React, { memo, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { MMKV } from 'react-native-mmkv'
 import { useTheme } from '@shared/hooks/useTheme'
 
-const storage = new MMKV({ id: 'notification-prefs' })
-
-interface NotificationCategory {
-  key: string
-  titleKey: string
-  descKey: string
-  icon: string
-}
-
-const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
-  { key: 'order_updates', titleKey: 'notifications.orderUpdates', descKey: 'notifications.orderUpdatesDesc', icon: '📦' },
-  { key: 'promotions', titleKey: 'notifications.promotions', descKey: 'notifications.promotionsDesc', icon: '🎉' },
-  { key: 'flash_sales', titleKey: 'notifications.flashSales', descKey: 'notifications.flashSalesDesc', icon: '⚡' },
-  { key: 'new_arrivals', titleKey: 'notifications.newArrivals', descKey: 'notifications.newArrivalsDesc', icon: '✨' },
-  { key: 'price_drops', titleKey: 'notifications.priceDrops', descKey: 'notifications.priceDropsDesc', icon: '📉' },
-  { key: 'live_streams', titleKey: 'notifications.liveStreams', descKey: 'notifications.liveStreamsDesc', icon: '🎥' },
-  { key: 'chat_messages', titleKey: 'notifications.chatMessages', descKey: 'notifications.chatMessagesDesc', icon: '💬' },
+const NOTIFICATION_PREFS = [
+  { key: 'orders', label: 'Order Updates', icon: '📦' },
+  { key: 'promotions', label: 'Promotions & Offers', icon: '🎁' },
+  { key: 'flashSales', label: 'Flash Sales', icon: '⚡' },
+  { key: 'priceDrops', label: 'Price Drops on Wishlist', icon: '💰' },
+  { key: 'newArrivals', label: 'New Arrivals', icon: '✨' },
+  { key: 'system', label: 'System Notifications', icon: 'ℹ️' },
 ]
 
-function getStoredPrefs(): Record<string, boolean> {
-  try {
-    const raw = storage.getString('notification_prefs')
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-/** Notification preferences with per-category toggles, persisted in MMKV */
 const NotificationsSettingsScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-
-  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
-    const stored = getStoredPrefs()
-    const defaults: Record<string, boolean> = {}
-    NOTIFICATION_CATEGORIES.forEach(c => {
-      defaults[c.key] = stored[c.key] ?? true
-    })
-    return defaults
-  })
-
-  const handleToggle = useCallback((key: string, value: boolean) => {
-    setPrefs(prev => {
-      const updated = { ...prev, [key]: value }
-      storage.set('notification_prefs', JSON.stringify(updated))
-      return updated
-    })
-  }, [])
-
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors, typography, spacing, radius } = useTheme()
+  const navigation = useNavigation()
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(
+    Object.fromEntries(NOTIFICATION_PREFS.map(p => [p.key, true])),
+  )
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <Text style={styles.backText}>←</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={[typography.body1, { color: colors.primary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('notifications.settings')}</Text>
-        <View style={{ width: 32 }} />
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('profile.notifications')}</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.hint}>{t('notifications.settingsHint')}</Text>
-
-        {NOTIFICATION_CATEGORIES.map(category => (
-          <View key={category.key} style={styles.row}>
-            <Text style={styles.rowIcon}>{category.icon}</Text>
-            <View style={styles.rowInfo}>
-              <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>{t(category.titleKey)}</Text>
-              <Text style={[styles.rowDesc, { color: colors.textMuted }]}>{t(category.descKey)}</Text>
+      <ScrollView contentContainerStyle={{ padding: spacing.md }}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
+          {NOTIFICATION_PREFS.map((pref, i) => (
+            <View
+              key={pref.key}
+              style={[
+                styles.row,
+                i < NOTIFICATION_PREFS.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+              ]}
+            >
+              <Text style={styles.icon}>{pref.icon}</Text>
+              <Text style={[typography.body1, { color: colors.textPrimary, flex: 1 }]}>{pref.label}</Text>
+              <Switch
+                value={prefs[pref.key]}
+                onValueChange={val => setPrefs(prev => ({ ...prev, [pref.key]: val }))}
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
             </View>
-            <Switch
-              value={prefs[category.key] ?? true}
-              onValueChange={v => handleToggle(category.key, v)}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
-        ))}
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   )
 })
 
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backText: { fontFamily: 'Poppins-Medium', fontSize: 22, color: colors.textSecondary },
-    headerTitle: { fontFamily: 'Poppins-SemiBold', fontSize: 18, color: colors.textPrimary },
-    scroll: { flex: 1 },
-    hint: {
-      fontFamily: 'Poppins-Regular',
-      fontSize: 13,
-      color: colors.textMuted,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      lineHeight: 20,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      gap: 14,
-    },
-    rowIcon: { fontSize: 24, width: 32, textAlign: 'center' },
-    rowInfo: { flex: 1 },
-    rowTitle: { fontFamily: 'Poppins-SemiBold', fontSize: 15 },
-    rowDesc: { fontFamily: 'Poppins-Regular', fontSize: 12, marginTop: 2, lineHeight: 18 },
-  })
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  section: { overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  icon: { fontSize: 20 },
+})
 
 export default NotificationsSettingsScreen

@@ -1,44 +1,37 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import { baseQueryWithReauth } from '@services/apiClient'
-import { API_ENDPOINTS } from '@shared/constants/api'
-
-export interface OrderItem { productId: string; name: string; image: string; size: string; color: string; quantity: number; price: number }
-export interface TrackingStep { status: string; timestamp: string; location: string; completed: boolean }
-export interface Order {
-  id: string; items: OrderItem[]; status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned'
-  total: number; currency: string; createdAt: string; estimatedDelivery: string
-  address: { line1: string; city: string; state: string; country: string }
-  paymentMethod: string; trackingNumber?: string
-}
+import { axiosBaseQuery } from '@services/apiClient'
+import type { Order, OrderTracking, ReturnRequest, ApiListResponse } from '@features/orders/orders.types'
 
 export const ordersApi = createApi({
   reducerPath: 'ordersApi',
-  baseQuery: baseQueryWithReauth,
+  baseQuery: axiosBaseQuery(),
   tagTypes: ['Order'],
   endpoints: builder => ({
-    getOrders: builder.query<{ data: Order[]; meta: { total: number } }, { page?: number; status?: string }>({
-      query: params => ({ url: API_ENDPOINTS.ORDERS, params }),
+    createOrder: builder.mutation<Order, { addressId: string; paymentMethodId: string; couponCode?: string }>({
+      query: body => ({ url: '/orders', method: 'POST', data: body }),
+      invalidatesTags: ['Order'],
+    }),
+    getOrders: builder.query<ApiListResponse<Order>, { page?: number; limit?: number; status?: string }>({
+      query: params => ({ url: '/orders', method: 'GET', params }),
       providesTags: ['Order'],
     }),
-    getOrder: builder.query<Order, string>({
-      query: id => `${API_ENDPOINTS.ORDERS}/${id}`,
-      providesTags: (_, __, id) => [{ type: 'Order', id }],
+    getOrderById: builder.query<Order, string>({
+      query: id => ({ url: `/orders/${id}`, method: 'GET' }),
+      providesTags: (_r, _e, id) => [{ type: 'Order', id }],
     }),
-    getTracking: builder.query<{ steps: TrackingStep[]; currentLocation?: string; estimatedDelivery: string }, string>({
-      query: id => `${API_ENDPOINTS.ORDERS}/${id}/tracking`,
+    getOrderTracking: builder.query<OrderTracking, string>({
+      query: id => ({ url: `/orders/${id}/tracking`, method: 'GET' }),
     }),
-    createOrder: builder.mutation<Order, { addressId: string; paymentMethodId: string; couponCode?: string }>({
-      query: body => ({ url: API_ENDPOINTS.ORDERS, method: 'POST', body }),
-      invalidatesTags: ['Order'],
-    }),
-    requestReturn: builder.mutation<void, { orderId: string; items: string[]; reason: string; description: string; photos?: string[] }>({
-      query: ({ orderId, ...body }) => ({ url: `${API_ENDPOINTS.ORDERS}/${orderId}/return`, method: 'POST', body }),
-      invalidatesTags: ['Order'],
+    createReturnRequest: builder.mutation<void, { orderId: string } & ReturnRequest>({
+      query: ({ orderId, ...body }) => ({ url: `/orders/${orderId}/return`, method: 'POST', data: body }),
     }),
   }),
 })
 
 export const {
-  useGetOrdersQuery, useGetOrderQuery, useGetTrackingQuery,
-  useCreateOrderMutation, useRequestReturnMutation,
+  useCreateOrderMutation,
+  useGetOrdersQuery,
+  useGetOrderByIdQuery,
+  useGetOrderTrackingQuery,
+  useCreateReturnRequestMutation,
 } = ordersApi

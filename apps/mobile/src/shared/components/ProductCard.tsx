@@ -1,109 +1,130 @@
 import React, { memo, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
 import FastImage from 'react-native-fast-image'
-import { Ionicons } from '@expo/vector-icons'
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated'
+import * as Haptics from 'expo-haptics'
 import { useTheme } from '@shared/hooks/useTheme'
+import { useAppDispatch } from '@store/store'
+import { useAddToWishlistMutation, useRemoveFromWishlistMutation } from '@store/api/userApi'
+import { formatCurrency, formatDiscount } from '@shared/utils/formatCurrency'
+import Badge from './Badge'
+import Skeleton from './Skeleton'
 
-/** Subset of the API `Product` shape that this card can render. */
-interface ProductLike {
-  id: string
-  name: string
-  price: number
-  originalPrice?: number
-  currency?: string
-  images: string[]
-  rating?: number
-  reviewCount?: number
-}
+const { width } = Dimensions.get('window')
+const CARD_WIDTH = (width - 48) / 2
 
 interface ProductCardProps {
-  /** Pass a full product object, OR the individual props below. */
-  product?: ProductLike
-  id?: string
-  title?: string
-  price?: number
+  id: string
+  title: string
+  price: number
   originalPrice?: number
-  currency?: string
-  imageUrl?: string
+  imageUrl: string
   rating?: number
   reviewCount?: number
-  discountPercent?: number
   isNew?: boolean
   isHot?: boolean
-  inWishlist?: boolean
+  isFlashSale?: boolean
+  isOutOfStock?: boolean
+  isWishlisted?: boolean
+  currency?: string
   onPress: () => void
-  onWishlistToggle?: () => void
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo((props) => {
-  const { product, isNew, isHot, inWishlist = false, onPress, onWishlistToggle } = props
-  const { colors } = useTheme()
+const ProductCard: React.FC<ProductCardProps> = memo(({
+  id,
+  title,
+  price,
+  originalPrice,
+  imageUrl,
+  rating = 0,
+  reviewCount = 0,
+  isNew,
+  isHot,
+  isFlashSale,
+  isOutOfStock,
+  isWishlisted = false,
+  currency = 'NGN',
+  onPress,
+}) => {
+  const { colors, typography, radius, shadows } = useTheme()
+  const [addToWishlist] = useAddToWishlistMutation()
+  const [removeFromWishlist] = useRemoveFromWishlistMutation()
+  const heartScale = useSharedValue(1)
+  const [imageLoaded, setImageLoaded] = React.useState(false)
 
-  const title = product?.name ?? props.title ?? ''
-  const price = product?.price ?? props.price ?? 0
-  const originalPrice = product?.originalPrice ?? props.originalPrice
-  const currency = product?.currency ?? props.currency ?? '₦'
-  const imageUrl = product?.images?.[0] ?? props.imageUrl ?? ''
-  const rating = product?.rating ?? props.rating ?? 0
-  const reviewCount = product?.reviewCount ?? props.reviewCount ?? 0
-  const discountPercent = props.discountPercent ??
-    (originalPrice && originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : undefined)
+  const heartStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heartScale.value }],
+  }))
 
-  const handleWishlist = useCallback((e: any) => {
-    e.stopPropagation()
-    onWishlistToggle?.()
-  }, [onWishlistToggle])
+  const handleWishlist = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    heartScale.value = withSpring(1.4, { damping: 5 }, () => {
+      heartScale.value = withSpring(1)
+    })
+    if (isWishlisted) {
+      await removeFromWishlist(id)
+    } else {
+      await addToWishlist(id)
+    }
+  }, [id, isWishlisted, addToWishlist, removeFromWishlist, heartScale])
 
-  const formatPrice = (n: number) => `${currency}${n.toLocaleString()}`
+  const discount = originalPrice ? formatDiscount(originalPrice, price) : 0
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.surface }]}
+      style={[styles.card, { backgroundColor: colors.surface, borderRadius: radius.lg, ...shadows.card }]}
       onPress={onPress}
-      activeOpacity={0.75}
+      activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
+        {!imageLoaded && <Skeleton height={CARD_WIDTH * 1.2} borderRadius={0} />}
         <FastImage
           source={{ uri: imageUrl, priority: FastImage.priority.normal }}
-          style={styles.image}
+          style={[styles.image, { opacity: imageLoaded ? 1 : 0 }]}
           resizeMode={FastImage.resizeMode.cover}
+          onLoad={() => setImageLoaded(true)}
         />
-        {discountPercent ? (
-          <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-            <Text style={styles.badgeText}>-{discountPercent}%</Text>
+
+        <View style={styles.badges}>
+          {isFlashSale && <Badge variant="flashSale" />}
+          {isNew && !isFlashSale && <Badge variant="new" />}
+          {isHot && !isFlashSale && !isNew && <Badge variant="hot" />}
+          {discount > 0 && !isFlashSale && <Badge variant="discount" percent={discount} />}
+        </View>
+
+        {isOutOfStock && (
+          <View style={styles.outOfStockOverlay}>
+            <Badge variant="outOfStock" />
           </View>
-        ) : isNew ? (
-          <View style={[styles.badge, { backgroundColor: colors.success }]}>
-            <Text style={styles.badgeText}>New</Text>
-          </View>
-        ) : isHot ? (
-          <View style={[styles.badge, { backgroundColor: '#FFB830' }]}>
-            <Text style={styles.badgeText}>🔥 Hot</Text>
-          </View>
-        ) : null}
-        <TouchableOpacity style={styles.wishlistBtn} onPress={handleWishlist} activeOpacity={0.75}>
-          <Ionicons
-            name={inWishlist ? 'heart' : 'heart-outline'}
-            size={20}
-            color={inWishlist ? colors.accent : colors.textSecondary}
-          />
-        </TouchableOpacity>
+        )}
+
+        <Animated.View style={[styles.wishlistBtn, heartStyle]}>
+          <TouchableOpacity onPress={() => { void handleWishlist() }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={[styles.heart, { color: isWishlisted ? colors.accent : 'rgba(255,255,255,0.7)' }]}>
+              {isWishlisted ? '♥' : '♡'}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
 
-      <View style={styles.info}>
-        <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2}>{title}</Text>
+      <View style={styles.content}>
+        <Text style={[typography.body2, { color: colors.textPrimary }]} numberOfLines={2}>
+          {title}
+        </Text>
+
         <View style={styles.priceRow}>
-          <Text style={[styles.price, { color: colors.primary }]}>{formatPrice(price)}</Text>
-          {originalPrice && (
-            <Text style={[styles.originalPrice, { color: colors.textMuted }]}>{formatPrice(originalPrice)}</Text>
+          <Text style={[typography.price, { color: colors.primary }]}>{formatCurrency(price, currency)}</Text>
+          {originalPrice && originalPrice > price && (
+            <Text style={[typography.caption, { color: colors.textMuted, textDecorationLine: 'line-through' }]}>
+              {formatCurrency(originalPrice, currency)}
+            </Text>
           )}
         </View>
+
         {rating > 0 && (
           <View style={styles.ratingRow}>
-            <Ionicons name="star" size={12} color={colors.primary} />
-            <Text style={[styles.ratingText, { color: colors.textSecondary }]}>
-              {rating.toFixed(1)} ({reviewCount})
-            </Text>
+            <Text style={styles.stars}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}</Text>
+            <Text style={[typography.caption, { color: colors.textMuted }]}> ({reviewCount})</Text>
           </View>
         )}
       </View>
@@ -112,19 +133,22 @@ const ProductCard: React.FC<ProductCardProps> = memo((props) => {
 })
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
+  card: { width: CARD_WIDTH, margin: 6, overflow: 'hidden' },
   imageContainer: { position: 'relative' },
-  image: { width: '100%', aspectRatio: 0.8 },
-  badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  badgeText: { color: '#fff', fontFamily: 'Inter-Bold', fontSize: 10 },
-  wishlistBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 4 },
-  info: { padding: 10 },
-  title: { fontFamily: 'Poppins-Regular', fontSize: 13, lineHeight: 18, marginBottom: 4 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  price: { fontFamily: 'Inter-Bold', fontSize: 15 },
-  originalPrice: { fontFamily: 'Inter-Regular', fontSize: 12, textDecorationLine: 'line-through' },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontFamily: 'Inter-Regular', fontSize: 11 },
+  image: { width: '100%', height: CARD_WIDTH * 1.2 },
+  badges: { position: 'absolute', top: 8, left: 8, gap: 4 },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wishlistBtn: { position: 'absolute', top: 8, right: 8 },
+  heart: { fontSize: 22 },
+  content: { padding: 10 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  stars: { color: '#FFB830', fontSize: 12 },
 })
 
 export default ProductCard

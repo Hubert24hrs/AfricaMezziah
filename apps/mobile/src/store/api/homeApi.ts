@@ -1,24 +1,27 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import { baseQueryWithReauth } from '@services/apiClient'
-import { Product } from './productsApi'
-
-export interface HeroBanner { id: string; imageUrl: string; title: string; subtitle: string; ctaLabel: string; ctaRoute: string; ctaParams?: Record<string, string> }
-export interface StylePost { id: string; title: string; imageUrl: string; excerpt: string; url: string }
-export interface HomeData {
-  banners: HeroBanner[]; flashSaleEndTime: string; flashSaleProducts: Product[]
-  aiPicks: Product[]; trending: Product[]; newArrivals: Product[]
-  superDeals: Product[]; stylePosts: StylePost[]; brandVideoUrl?: string
-}
+import { axiosBaseQuery } from '@services/apiClient'
+import type { Banner, FlashSaleData, HomeData } from '@features/home/home.types'
 
 export const homeApi = createApi({
   reducerPath: 'homeApi',
-  baseQuery: baseQueryWithReauth,
-  keepUnusedDataFor: 300,
+  baseQuery: axiosBaseQuery(),
+  tagTypes: ['Home'],
   endpoints: builder => ({
     getHomeData: builder.query<HomeData, void>({
-      query: () => '/home',
+      query: () => ({ url: '/home', method: 'GET' }),
+      providesTags: ['Home'],
+    }),
+    getBanners: builder.query<Banner[], void>({
+      query: () => ({ url: '/home/banners', method: 'GET' }),
+    }),
+    getFlashSale: builder.query<FlashSaleData, void>({
+      query: () => ({ url: '/home/flash-sale', method: 'GET' }),
     }),
   }),
 })
 
-export const { useGetHomeDataQuery } = homeApi
+export const {
+  useGetHomeDataQuery,
+  useGetBannersQuery,
+  useGetFlashSaleQuery,
+} = homeApi

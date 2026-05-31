@@ -1,38 +1,30 @@
-let firebaseAnalytics: { logEvent: (name: string, params?: Record<string, unknown>) => Promise<void> } | null = null
+import analytics from '@react-native-firebase/analytics'
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  firebaseAnalytics = require('@react-native-firebase/analytics').default()
-} catch {
-  // Firebase not configured yet
+export const logEvent = async (event: string, params?: Record<string, string | number | boolean>): Promise<void> => {
+  if (__DEV__) return
+  await analytics().logEvent(event, params)
 }
 
-let analyticsEnabled = false
-
-export const initAnalytics = (enabled: boolean) => {
-  analyticsEnabled = enabled
+export const logScreenView = async (screenName: string): Promise<void> => {
+  if (__DEV__) return
+  await analytics().logScreenView({ screen_name: screenName, screen_class: screenName })
 }
 
-export const logEvent = async (name: string, params?: Record<string, unknown>) => {
-  if (!analyticsEnabled || !firebaseAnalytics) return
-  try {
-    await firebaseAnalytics.logEvent(name, params)
-  } catch {
-    // non-fatal
-  }
+export const setUserId = async (userId: string): Promise<void> => {
+  await analytics().setUserId(userId)
 }
 
 export const EVENTS = {
-  VIEW_PRODUCT: 'view_product',
+  LOGIN: 'login',
+  REGISTER: 'sign_up',
+  VIEW_PRODUCT: 'view_item',
   ADD_TO_CART: 'add_to_cart',
   REMOVE_FROM_CART: 'remove_from_cart',
-  ADD_TO_WISHLIST: 'add_to_wishlist',
   BEGIN_CHECKOUT: 'begin_checkout',
   PURCHASE: 'purchase',
+  ADD_TO_WISHLIST: 'add_to_wishlist',
   SEARCH: 'search',
-  VIEW_CATEGORY: 'view_category',
-  LOGIN: 'login',
-  SIGN_UP: 'sign_up',
   VIEW_LIVE_STREAM: 'view_live_stream',
-  AI_CHAT: 'ai_chat_message',
+  SHARE: 'share',
+  APPLY_COUPON: 'apply_coupon',
 } as const

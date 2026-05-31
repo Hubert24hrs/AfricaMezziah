@@ -1,12 +1,40 @@
-export { darkColors, lightColors } from './colors'
-export type { AppColors } from './colors'
-export { typography, fontFamilies, fontSources } from './typography'
-export { spacing, radius } from './spacing'
-export type { Spacing, Radius } from './spacing'
-export { shadows } from './shadows'
+import { colors } from './colors'
+import { typography, fontFamilies } from './typography'
+import { spacing, radius } from './spacing'
+import { shadows } from './shadows'
 
-export const glassStyle = {
-  backgroundColor: 'rgba(255,255,255,0.05)',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.12)',
-} as const
+export const darkTheme = {
+  colors: {
+    ...colors,
+    background: colors.background,
+    surface: colors.surface,
+    textPrimary: colors.textPrimary,
+    textSecondary: colors.textSecondary,
+  },
+  typography,
+  fontFamilies,
+  spacing,
+  radius,
+  shadows,
+  isDark: true,
+}
+
+export const lightTheme = {
+  colors: {
+    ...colors,
+    background: colors.backgroundLight,
+    surface: '#FFFFFF',
+    textPrimary: '#0F0F1A',
+    textSecondary: '#4A4A5A',
+  },
+  typography,
+  fontFamilies,
+  spacing,
+  radius,
+  shadows,
+  isDark: false,
+}
+
+export type Theme = typeof darkTheme
+
+export { colors, typography, fontFamilies, spacing, radius, shadows }

@@ -1,52 +1,57 @@
 import { Platform } from 'react-native'
+import JailMonkey from 'jail-monkey'
 import * as Sentry from '@sentry/react-native'
 
-let jailMonkeyModule: { isJailBroken: () => boolean; isOnExternalStorage: () => boolean } | null = null
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  jailMonkeyModule = require('jail-monkey').default
-} catch {
-  // jail-monkey not available in Expo Go — skip
+export interface SecurityCheckResult {
+  isBlocked: boolean
+  reason?: string
 }
 
-export type SecurityResult = { safe: boolean; reason?: string }
-
-export const checkDeviceSecurity = (): SecurityResult => {
-  if (!jailMonkeyModule) return { safe: true }
+export const checkDeviceSecurity = (): SecurityCheckResult => {
   try {
-    if (jailMonkeyModule.isJailBroken()) {
-      Sentry.addBreadcrumb({ message: 'Jailbroken device detected', level: 'warning' })
-      return { safe: false, reason: 'jailbreak' }
+    const isJailbroken = JailMonkey.isJailBroken()
+    const isOnExternalStorage = JailMonkey.isOnExternalStorage()
+    const isDebugged = JailMonkey.canMockLocation()
+
+    const bypassSecurity = process.env.EXPO_PUBLIC_BYPASS_SECURITY === 'true'
+
+    if ((isJailbroken || isOnExternalStorage) && !bypassSecurity) {
+      Sentry.addBreadcrumb({
+        category: 'security',
+        message: 'Jailbreak/root detected',
+        level: 'warning',
+        data: { isJailbroken, isOnExternalStorage },
+      })
+      return { isBlocked: true, reason: 'jailbreak' }
     }
-    if (Platform.OS === 'android' && jailMonkeyModule.isOnExternalStorage()) {
-      return { safe: false, reason: 'external_storage' }
+
+    if (__DEV__ === false && isDebugged) {
+      return { isBlocked: true, reason: 'debug' }
     }
-    return { safe: true }
+
+    return { isBlocked: false }
   } catch {
-    return { safe: true }
+    return { isBlocked: false }
   }
 }
 
-// Optional native module — loaded lazily so the app still runs without it (e.g. Expo Go).
-const getScreenshotPreventor = (): { enableSecureView: () => void; disableSecureView: () => void } | null => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('react-native-screens-screenshot-prevent').default
-  } catch {
-    return null
-  }
-}
-
-export const preventScreenshot = async (screenName: string): Promise<void> => {
+export const enableScreenshotPrevention = async (): Promise<void> => {
   if (Platform.OS === 'android') {
-    getScreenshotPreventor()?.enableSecureView()
+    const { default: RNScreenshotPrevent } = await import('react-native-screenshot-prevent')
+    RNScreenshotPrevent.enabled(true)
   }
-  Sentry.addBreadcrumb({ message: `Screenshot prevention applied: ${screenName}`, level: 'info' })
 }
 
-export const allowScreenshot = async (): Promise<void> => {
+export const disableScreenshotPrevention = async (): Promise<void> => {
   if (Platform.OS === 'android') {
-    getScreenshotPreventor()?.disableSecureView()
+    const { default: RNScreenshotPrevent } = await import('react-native-screenshot-prevent')
+    RNScreenshotPrevent.enabled(false)
   }
 }
+
+export const SCREENSHOT_PROTECTED_SCREENS = [
+  'Payment',
+  'CardEntry',
+  'Login',
+  'OTPVerification',
+] as const

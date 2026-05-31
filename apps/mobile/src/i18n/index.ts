@@ -11,16 +11,21 @@ const storage = new MMKV({ id: 'i18n-storage' })
 const languageDetector = {
   type: 'languageDetector' as const,
   async: false,
-  detect: () => storage.getString('app_language') ?? 'en',
   init: () => {},
-  cacheUserLanguage: (lang: string) => storage.set('app_language', lang),
+  detect: (): string => {
+    const saved = storage.getString('user-language')
+    return saved ?? 'en'
+  },
+  cacheUserLanguage: (language: string) => {
+    storage.set('user-language', language)
+  },
 }
 
-i18n
+void i18n
   .use(languageDetector)
   .use(initReactI18next)
   .init({
-    compatibilityJSON: 'v4',
+    compatibilityJSON: 'v3',
     fallbackLng: 'en',
     resources: {
       en: { translation: en },
@@ -31,20 +36,6 @@ i18n
     react: { useSuspense: false },
   })
 
-export const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', nativeLabel: 'English' },
-  { code: 'fr', label: 'French', nativeLabel: 'Français' },
-  { code: 'sw', label: 'Swahili', nativeLabel: 'Kiswahili' },
-  { code: 'ha', label: 'Hausa', nativeLabel: 'Hausa' },
-  { code: 'yo', label: 'Yoruba', nativeLabel: 'Yorùbá' },
-  { code: 'ig', label: 'Igbo', nativeLabel: 'Igbo' },
-]
-
-export const changeLanguage = (lang: string) => {
-  storage.set('app_language', lang)
-  return i18n.changeLanguage(lang)
-}
-
-export const initI18n = () => i18n
-
 export default i18n
+export const supportedLanguages = ['en', 'fr', 'sw', 'ha', 'yo', 'ig'] as const
+export type SupportedLanguage = (typeof supportedLanguages)[number]

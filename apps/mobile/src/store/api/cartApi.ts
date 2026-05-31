@@ -1,54 +1,48 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import { baseQueryWithReauth } from '@services/apiClient'
-import { API_ENDPOINTS } from '@shared/constants/api'
-import { Product } from './productsApi'
-
-export interface CartItem {
-  id: string; product: Product; variantId: string; quantity: number
-  size: string; color: string; price: number
-}
-export interface Cart {
-  items: CartItem[]; subtotal: number; shipping: number; discount: number
-  total: number; couponCode?: string; itemCount: number
-}
+import { axiosBaseQuery } from '@services/apiClient'
+import type { Cart, CartItem, ShippingEstimate } from '@features/cart/cart.types'
 
 export const cartApi = createApi({
   reducerPath: 'cartApi',
-  baseQuery: baseQueryWithReauth,
+  baseQuery: axiosBaseQuery(),
   tagTypes: ['Cart'],
   endpoints: builder => ({
     getCart: builder.query<Cart, void>({
-      query: () => API_ENDPOINTS.CART,
+      query: () => ({ url: '/cart', method: 'GET' }),
       providesTags: ['Cart'],
     }),
     addToCart: builder.mutation<Cart, { productId: string; variantId: string; quantity: number }>({
-      query: body => ({ url: API_ENDPOINTS.CART_ITEMS, method: 'POST', body }),
+      query: body => ({ url: '/cart/items', method: 'POST', data: body }),
       invalidatesTags: ['Cart'],
     }),
     updateCartItem: builder.mutation<Cart, { id: string; quantity: number }>({
-      query: ({ id, quantity }) => ({ url: `${API_ENDPOINTS.CART_ITEMS}/${id}`, method: 'PUT', body: { quantity } }),
+      query: ({ id, quantity }) => ({ url: `/cart/items/${id}`, method: 'PUT', data: { quantity } }),
       invalidatesTags: ['Cart'],
     }),
     removeCartItem: builder.mutation<Cart, string>({
-      query: id => ({ url: `${API_ENDPOINTS.CART_ITEMS}/${id}`, method: 'DELETE' }),
+      query: id => ({ url: `/cart/items/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Cart'],
     }),
     applyCoupon: builder.mutation<Cart, { code: string }>({
-      query: body => ({ url: API_ENDPOINTS.APPLY_COUPON, method: 'POST', body }),
+      query: body => ({ url: '/cart/apply-coupon', method: 'POST', data: body }),
       invalidatesTags: ['Cart'],
     }),
     removeCoupon: builder.mutation<Cart, void>({
-      query: () => ({ url: API_ENDPOINTS.REMOVE_COUPON, method: 'DELETE' }),
+      query: () => ({ url: '/cart/remove-coupon', method: 'DELETE' }),
       invalidatesTags: ['Cart'],
     }),
-    getShippingEstimate: builder.query<{ amount: number; estimatedDays: number }, string>({
-      query: addressId => ({ url: API_ENDPOINTS.SHIPPING_ESTIMATE, params: { addressId } }),
+    getShippingEstimate: builder.query<ShippingEstimate, string>({
+      query: addressId => ({ url: '/cart/shipping-estimate', method: 'GET', params: { addressId } }),
     }),
   }),
 })
 
 export const {
-  useGetCartQuery, useAddToCartMutation, useUpdateCartItemMutation,
-  useRemoveCartItemMutation, useApplyCouponMutation, useRemoveCouponMutation,
+  useGetCartQuery,
+  useAddToCartMutation,
+  useUpdateCartItemMutation,
+  useRemoveCartItemMutation,
+  useApplyCouponMutation,
+  useRemoveCouponMutation,
   useGetShippingEstimateQuery,
 } = cartApi

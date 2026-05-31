@@ -8,3 +8,8 @@ coverage
 .idea
 apps/backend/dist
 apps/frontend/.next
+*.apk
+build_logs.txt
+.expo/
+*.log
+scratch/

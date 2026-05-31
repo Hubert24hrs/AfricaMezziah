@@ -1,92 +1,114 @@
 import React, { memo, useCallback } from 'react'
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native'
+import { LinearGradient } from 'react-native-linear-gradient'
 import * as Haptics from 'expo-haptics'
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated'
 import { useTheme } from '@shared/hooks/useTheme'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 interface ButtonProps {
-  /** Button text. `title` is accepted as an alias for `label`. */
-  label?: string
-  title?: string
+  label: string
   onPress: () => void
-  variant?: ButtonVariant
+  variant?: Variant
   loading?: boolean
   disabled?: boolean
   style?: ViewStyle
   textStyle?: TextStyle
-  fullWidth?: boolean
+  icon?: React.ReactNode
 }
 
-const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity)
-
 const Button: React.FC<ButtonProps> = memo(({
-  label, title, onPress, variant = 'primary', loading = false, disabled = false, style, textStyle, fullWidth = false,
+  label,
+  onPress,
+  variant = 'primary',
+  loading = false,
+  disabled = false,
+  style,
+  textStyle,
+  icon,
 }) => {
-  const text = label ?? title ?? ''
-  const { colors, radius } = useTheme()
-  const scale = useSharedValue(1)
+  const { colors, typography, shadows } = useTheme()
 
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-
-  const handlePress = useCallback(() => {
-    scale.value = withSpring(0.96, {}, () => { scale.value = withSpring(1) })
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+  const handlePress = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     onPress()
-  }, [onPress, scale])
+  }, [onPress])
 
-  const variantStyles: Record<ButtonVariant, { container: ViewStyle; text: TextStyle }> = {
-    primary: {
-      container: { backgroundColor: colors.primary, ...styles.goldGlow },
-      text: { color: colors.textInverse },
-    },
-    secondary: {
-      container: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.primary },
-      text: { color: colors.primary },
-    },
-    ghost: {
-      container: { backgroundColor: 'transparent' },
-      text: { color: colors.textPrimary },
-    },
-    danger: {
-      container: { backgroundColor: colors.accent },
-      text: { color: '#FFFFFF' },
-    },
+  const isPrimary = variant === 'primary'
+  const isDanger = variant === 'danger'
+  const isSecondary = variant === 'secondary'
+  const isGhost = variant === 'ghost'
+
+  const containerStyle: ViewStyle = {
+    height: 52,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: disabled ? 0.4 : 1,
+    ...(isSecondary && { borderWidth: 1.5, borderColor: colors.primary }),
+    ...(isGhost && {}),
+    ...(isDanger && { backgroundColor: colors.accent }),
+    ...(shadows.goldGlow as ViewStyle),
+    ...(style as ViewStyle),
   }
 
-  const v = variantStyles[variant]
+  const labelStyle: TextStyle = {
+    ...(typography.button as TextStyle),
+    color: isPrimary ? colors.textInverse : isSecondary ? colors.primary : isDanger ? colors.textPrimary : colors.textPrimary,
+    ...(textStyle as TextStyle),
+  }
+
+  const content = loading ? (
+    <ActivityIndicator color={isPrimary ? colors.textInverse : colors.primary} />
+  ) : (
+    <>
+      {icon}
+      <Text style={labelStyle}>{label}</Text>
+    </>
+  )
+
+  if (isPrimary) {
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={disabled || loading}
+        activeOpacity={0.75}
+        style={[containerStyle, style]}
+      >
+        <LinearGradient
+          colors={[colors.goldGradientStart, colors.goldGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradient}
+        >
+          {content}
+        </LinearGradient>
+      </TouchableOpacity>
+    )
+  }
 
   return (
-    <AnimatedTouchable
+    <TouchableOpacity
       onPress={handlePress}
       disabled={disabled || loading}
       activeOpacity={0.75}
-      style={[
-        styles.base,
-        { borderRadius: radius.full },
-        v.container,
-        disabled && styles.disabled,
-        fullWidth && styles.fullWidth,
-        animatedStyle,
-        style,
-      ]}
+      style={[containerStyle, style]}
     >
-      {loading ? (
-        <ActivityIndicator color={v.text.color} size="small" />
-      ) : (
-        <Text style={[styles.label, v.text, textStyle]}>{text}</Text>
-      )}
-    </AnimatedTouchable>
+      {content}
+    </TouchableOpacity>
   )
 })
 
 const styles = StyleSheet.create({
-  base: { height: 48, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: 'Poppins-SemiBold', fontSize: 16 },
-  disabled: { opacity: 0.4 },
-  fullWidth: { width: '100%' },
-  goldGlow: { shadowColor: '#C9A84C', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 10 },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
 })
 
 export default Button

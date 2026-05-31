@@ -1,61 +1,76 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import { baseQueryWithReauth } from '@services/apiClient'
-import { API_ENDPOINTS } from '@shared/constants/api'
-
-export interface LoginRequest { email: string; password: string }
-export interface RegisterRequest { fullName: string; email: string; phone: string; password: string }
-export interface OtpRequest { destination: string; otp: string; purpose: string }
-export interface RefreshTokenRequest { refreshToken: string }
-export interface AuthResponse {
-  user: { id: string; name: string; email: string; phone: string; avatar?: string; loyaltyPoints: number }
-  accessToken: string
-  refreshToken: string
-}
-export interface Session { id: string; device: string; location: string; lastSeen: string }
-export interface MfaSetupResponse { qrCodeUrl: string; secret: string; backupCodes: string[] }
+import { axiosBaseQuery } from '@services/apiClient'
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  RefreshTokenResponse,
+  OTPVerifyRequest,
+  ForgotPasswordRequest,
+  SocialAuthRequest,
+  MFASetupResponse,
+  MFAVerifyRequest,
+  ActiveSession,
+} from '@features/auth/auth.types'
 
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: baseQueryWithReauth,
+  baseQuery: axiosBaseQuery(),
+  tagTypes: ['Session'],
   endpoints: builder => ({
-    login: builder.mutation<AuthResponse, LoginRequest>({
-      query: body => ({ url: API_ENDPOINTS.LOGIN, method: 'POST', body }),
+    login: builder.mutation<LoginResponse, LoginRequest>({
+      query: body => ({ url: '/auth/login', method: 'POST', data: body }),
     }),
-    register: builder.mutation<AuthResponse, RegisterRequest>({
-      query: body => ({ url: API_ENDPOINTS.REGISTER, method: 'POST', body }),
+    register: builder.mutation<RegisterResponse, RegisterRequest>({
+      query: body => ({ url: '/auth/register', method: 'POST', data: body }),
+    }),
+    refreshToken: builder.mutation<RefreshTokenResponse, { refreshToken: string }>({
+      query: body => ({ url: '/auth/refresh-token', method: 'POST', data: body }),
     }),
     logout: builder.mutation<void, { refreshToken: string }>({
-      query: body => ({ url: API_ENDPOINTS.LOGOUT, method: 'POST', body }),
+      query: body => ({ url: '/auth/logout', method: 'POST', data: body }),
     }),
-    forgotPassword: builder.mutation<void, { email: string }>({
-      query: body => ({ url: API_ENDPOINTS.FORGOT_PASSWORD, method: 'POST', body }),
+    forgotPassword: builder.mutation<void, ForgotPasswordRequest>({
+      query: body => ({ url: '/auth/forgot-password', method: 'POST', data: body }),
     }),
-    verifyOtp: builder.mutation<AuthResponse, OtpRequest>({
-      query: body => ({ url: API_ENDPOINTS.VERIFY_OTP, method: 'POST', body }),
+    verifyOTP: builder.mutation<LoginResponse, OTPVerifyRequest>({
+      query: body => ({ url: '/auth/verify-otp', method: 'POST', data: body }),
     }),
-    googleAuth: builder.mutation<AuthResponse, { idToken: string }>({
-      query: body => ({ url: API_ENDPOINTS.GOOGLE_AUTH, method: 'POST', body }),
+    googleAuth: builder.mutation<LoginResponse, SocialAuthRequest>({
+      query: body => ({ url: '/auth/google', method: 'POST', data: body }),
     }),
-    appleAuth: builder.mutation<AuthResponse, { identityToken: string; authorizationCode: string }>({
-      query: body => ({ url: API_ENDPOINTS.APPLE_AUTH, method: 'POST', body }),
+    appleAuth: builder.mutation<LoginResponse, { identityToken: string; authorizationCode: string }>({
+      query: body => ({ url: '/auth/apple', method: 'POST', data: body }),
     }),
-    enableMfa: builder.mutation<MfaSetupResponse, void>({
-      query: () => ({ url: API_ENDPOINTS.ENABLE_MFA, method: 'POST' }),
+    enableMFA: builder.mutation<MFASetupResponse, void>({
+      query: () => ({ url: '/auth/enable-mfa', method: 'POST' }),
     }),
-    verifyMfa: builder.mutation<void, { totpCode: string }>({
-      query: body => ({ url: API_ENDPOINTS.VERIFY_MFA, method: 'POST', body }),
+    verifyMFA: builder.mutation<void, MFAVerifyRequest>({
+      query: body => ({ url: '/auth/verify-mfa', method: 'POST', data: body }),
     }),
-    getSessions: builder.query<Session[], void>({
-      query: () => API_ENDPOINTS.SESSIONS,
+    getSessions: builder.query<ActiveSession[], void>({
+      query: () => ({ url: '/auth/sessions', method: 'GET' }),
+      providesTags: ['Session'],
     }),
     revokeSession: builder.mutation<void, string>({
-      query: id => ({ url: `${API_ENDPOINTS.SESSIONS}/${id}`, method: 'DELETE' }),
+      query: id => ({ url: `/auth/sessions/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Session'],
     }),
   }),
 })
 
 export const {
-  useLoginMutation, useRegisterMutation, useLogoutMutation, useForgotPasswordMutation,
-  useVerifyOtpMutation, useGoogleAuthMutation, useAppleAuthMutation,
-  useEnableMfaMutation, useVerifyMfaMutation, useGetSessionsQuery, useRevokeSessionMutation,
+  useLoginMutation,
+  useRegisterMutation,
+  useRefreshTokenMutation,
+  useLogoutMutation,
+  useForgotPasswordMutation,
+  useVerifyOTPMutation,
+  useGoogleAuthMutation,
+  useAppleAuthMutation,
+  useEnableMFAMutation,
+  useVerifyMFAMutation,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
 } = authApi

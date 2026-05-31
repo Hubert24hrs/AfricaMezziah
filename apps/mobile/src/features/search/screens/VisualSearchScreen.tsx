@@ -1,175 +1,112 @@
-import React, { memo, useCallback, useMemo, useState } from 'react'
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Dimensions,
-} from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import React, { memo, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useTranslation } from 'react-i18next'
-import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as ImagePicker from 'expo-image-picker'
+import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
-import { FlashList } from '@shopify/flash-list'
 import { useTheme } from '@shared/hooks/useTheme'
-import { useVisualSearchMutation, Product } from '@store/api/productsApi'
+import { useVisualSearchMutation } from '@store/api/productsApi'
 import ProductCard from '@shared/components/ProductCard'
-import Button from '@shared/components/Button'
-import Skeleton from '@shared/components/Skeleton'
-import { ROUTES } from '@shared/constants/routes'
+import { ProductCardSkeleton } from '@shared/components/Skeleton'
+import { FlashList } from '@shopify/flash-list'
+import { ROUTES } from '@constants/routes'
 
-const { height } = Dimensions.get('window')
-
-/** Visual search screen — camera capture or gallery pick, similarity results grid */
 const VisualSearchScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const [permission, requestPermission] = useCameraPermissions()
-  const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [results, setResults] = useState<Product[]>([])
-  const [cameraRef, setCameraRef] = useState<CameraView | null>(null)
-  const [visualSearch, { isLoading }] = useVisualSearchMutation()
+  const { colors, typography, spacing, radius } = useTheme()
+  const navigation = useNavigation()
+  const [imageUri, setImageUri] = useState<string | null>(null)
+  const [visualSearch, { isLoading, data: results }] = useVisualSearchMutation()
 
-  const handleCapture = useCallback(async () => {
-    if (!cameraRef) return
-    try {
-      const photo = await cameraRef.takePictureAsync({ base64: true, quality: 0.7 })
-      if (photo?.base64) {
-        setCapturedImage(photo.uri)
-        const res = await visualSearch({ imageBase64: photo.base64 }).unwrap()
-        setResults(res)
-      }
-    } catch {
-      Alert.alert(t('errors.generic'))
-    }
-  }, [cameraRef, visualSearch, t])
+  const pickImage = useCallback(async (fromCamera: boolean) => {
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.7 })
 
-  const handleGalleryPick = useCallback(async () => {
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      base64: true,
-      quality: 0.7,
-    })
-    if (!pickerResult.canceled && pickerResult.assets[0]?.base64) {
-      const asset = pickerResult.assets[0]
-      setCapturedImage(asset.uri)
-      try {
-        const res = await visualSearch({ imageBase64: asset.base64! }).unwrap()
-        setResults(res)
-      } catch {
-        Alert.alert(t('errors.generic'))
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0]
+      setImageUri(asset.uri)
+      if (asset.base64) {
+        await visualSearch({ imageBase64: asset.base64 })
       }
     }
-  }, [visualSearch, t])
-
-  const handleRetake = useCallback(() => {
-    setCapturedImage(null)
-    setResults([])
-  }, [])
-
-  const renderItem = useCallback(
-    ({ item }: { item: Product }) => (
-      <ProductCard
-        product={item}
-        onPress={() => navigation.navigate(ROUTES.PRODUCT_DETAIL, { productId: item.id })}
-      />
-    ),
-    [navigation],
-  )
-
-  const keyExtractor = useCallback((item: Product) => item.id, [])
-
-  const styles = useMemo(() => createStyles(colors), [colors])
-
-  if (!permission) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <Text style={styles.permText}>{t('visual.checkingPermission')}</Text>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
-  if (!permission.granted) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <Text style={styles.permTitle}>{t('visual.cameraPermissionTitle')}</Text>
-          <Text style={styles.permText}>{t('visual.cameraPermissionDesc')}</Text>
-          <Button title={t('visual.grantPermission')} onPress={requestPermission} style={styles.permButton} />
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancelBtn} activeOpacity={0.75}>
-            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    )
-  }
+  }, [visualSearch])
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.75}>
-        <Text style={styles.backText}>←</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={[typography.body1, { color: colors.primary }]}>←</Text>
+        </TouchableOpacity>
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>Visual Search</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-      <Text style={styles.header}>{t('visual.title')}</Text>
-
-      {!capturedImage ? (
-        <View style={styles.cameraSection}>
-          <CameraView
-            ref={ref => setCameraRef(ref)}
-            style={styles.camera}
-          >
-            <View style={styles.cameraOverlay}>
-              <View style={styles.scanFrame} />
-            </View>
-          </CameraView>
-          <View style={styles.cameraActions}>
-            <TouchableOpacity onPress={handleGalleryPick} style={styles.galleryBtn} activeOpacity={0.75}>
-              <Text style={styles.galleryIcon}>🖼</Text>
-              <Text style={[styles.galleryLabel, { color: colors.textSecondary }]}>{t('visual.gallery')}</Text>
+      {!imageUri ? (
+        <View style={styles.uploadArea}>
+          <Text style={styles.uploadIcon}>🖼️</Text>
+          <Text style={[typography.h4, { color: colors.textPrimary, marginBottom: 8 }]}>Find Similar Items</Text>
+          <Text style={[typography.body2, { color: colors.textSecondary, textAlign: 'center', marginBottom: 32 }]}>
+            Take a photo or upload an image to find similar products
+          </Text>
+          <View style={styles.btnRow}>
+            <TouchableOpacity
+              style={[styles.uploadBtn, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
+              onPress={() => { void pickImage(true) }}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.btnIcon}>📷</Text>
+              <Text style={[typography.label, { color: colors.textInverse }]}>Camera</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleCapture} style={styles.captureBtn} activeOpacity={0.75}>
-              <View style={[styles.captureInner, { borderColor: colors.primary }]} />
+            <TouchableOpacity
+              style={[styles.uploadBtn, { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border }]}
+              onPress={() => { void pickImage(false) }}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.btnIcon}>🖼️</Text>
+              <Text style={[typography.label, { color: colors.textPrimary }]}>Gallery</Text>
             </TouchableOpacity>
-            <View style={{ width: 60 }} />
           </View>
         </View>
       ) : (
-        <View style={styles.resultsSection}>
-          <View style={styles.capturedRow}>
-            <FastImage source={{ uri: capturedImage }} style={styles.capturedThumb} />
-            <View style={styles.capturedInfo}>
-              <Text style={[styles.capturedLabel, { color: colors.textPrimary }]}>
-                {t('visual.analyzingImage')}
-              </Text>
-              <TouchableOpacity onPress={handleRetake} activeOpacity={0.75}>
-                <Text style={[styles.retakeText, { color: colors.primary }]}>{t('visual.retake')}</Text>
-              </TouchableOpacity>
+        <View style={styles.resultsContainer}>
+          <View style={styles.previewRow}>
+            <FastImage source={{ uri: imageUri }} style={[styles.preview, { borderRadius: radius.md }]} />
+            <View style={styles.previewText}>
+              <Text style={[typography.body1, { color: colors.textPrimary }]}>Similar Items</Text>
+              {results && <Text style={[typography.caption, { color: colors.textMuted }]}>{results.length} found</Text>}
             </View>
+            <TouchableOpacity onPress={() => { setImageUri(null) }}>
+              <Text style={{ color: colors.textMuted, fontSize: 18 }}>✕</Text>
+            </TouchableOpacity>
           </View>
 
           {isLoading ? (
             <View style={styles.skeletonGrid}>
-              {Array(4).fill(0).map((_, i) => <Skeleton key={i} width={170} height={260} borderRadius={12} />)}
+              {[...Array(4)].map((_, i) => <ProductCardSkeleton key={i} />)}
             </View>
-          ) : results.length > 0 ? (
-            <FlashList
-              data={results}
-              keyExtractor={keyExtractor}
-              renderItem={renderItem}
-              numColumns={2}
-              estimatedItemSize={260}
-              contentContainerStyle={styles.listContent}
-            />
           ) : (
-            <View style={styles.center}>
-              <Text style={[styles.noResults, { color: colors.textMuted }]}>{t('visual.noResults')}</Text>
-            </View>
+            <FlashList
+              data={results ?? []}
+              numColumns={2}
+              estimatedItemSize={280}
+              keyExtractor={item => item.id}
+              contentContainerStyle={{ padding: 6 }}
+              renderItem={({ item }) => (
+                <ProductCard
+                  id={item.id}
+                  title={item.title}
+                  price={item.price}
+                  imageUrl={item.imageUrl}
+                  rating={item.rating}
+                  onPress={() => {
+                    // @ts-ignore
+                    navigation.navigate(ROUTES.PRODUCT_DETAIL, { productId: item.id })
+                  }}
+                />
+              )}
+            />
           )}
         </View>
       )}
@@ -177,74 +114,19 @@ const VisualSearchScreen: React.FC = memo(() => {
   )
 })
 
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    backBtn: { paddingHorizontal: 16, paddingTop: 8 },
-    backText: { fontFamily: 'Poppins-Medium', fontSize: 22, color: colors.textSecondary },
-    header: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 22, color: colors.textPrimary, paddingHorizontal: 20, paddingVertical: 8 },
-    cameraSection: { flex: 1 },
-    camera: { flex: 1, maxHeight: height * 0.55 },
-    cameraOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scanFrame: {
-      width: 220,
-      height: 220,
-      borderWidth: 2,
-      borderColor: colors.primary,
-      borderRadius: 16,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.6,
-      shadowRadius: 12,
-    },
-    cameraActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 40,
-      paddingVertical: 32,
-    },
-    galleryBtn: { alignItems: 'center', gap: 4 },
-    galleryIcon: { fontSize: 32 },
-    galleryLabel: { fontFamily: 'Poppins-Regular', fontSize: 12 },
-    captureBtn: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    captureInner: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      borderWidth: 3,
-      backgroundColor: 'transparent',
-    },
-    resultsSection: { flex: 1 },
-    capturedRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    capturedThumb: { width: 60, height: 60, borderRadius: 8 },
-    capturedInfo: { flex: 1, gap: 4 },
-    capturedLabel: { fontFamily: 'Poppins-Medium', fontSize: 14 },
-    retakeText: { fontFamily: 'Poppins-Medium', fontSize: 13 },
-    skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 8, gap: 8 },
-    listContent: { paddingHorizontal: 8, paddingBottom: 24 },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 },
-    permTitle: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 24, color: colors.textPrimary, textAlign: 'center' },
-    permText: { fontFamily: 'Poppins-Regular', fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-    permButton: {},
-    cancelBtn: { paddingVertical: 12 },
-    cancelText: { fontFamily: 'Poppins-Medium', fontSize: 14, color: colors.textMuted },
-    noResults: { fontFamily: 'Poppins-Regular', fontSize: 15, textAlign: 'center' },
-  })
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  uploadArea: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  uploadIcon: { fontSize: 64, marginBottom: 24 },
+  btnRow: { flexDirection: 'row', gap: 16 },
+  uploadBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
+  btnIcon: { fontSize: 20 },
+  resultsContainer: { flex: 1 },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  preview: { width: 64, height: 64 },
+  previewText: { flex: 1 },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 6 },
+})
 
 export default VisualSearchScreen

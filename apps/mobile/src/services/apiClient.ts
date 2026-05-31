@@ -1,99 +1,118 @@
-import { fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
+import { BaseQueryFn } from '@reduxjs/toolkit/query'
 import * as Sentry from '@sentry/react-native'
-import { CONFIG } from '@shared/constants/config'
-import { getAccessToken, getRefreshToken, storeTokens, clearTokens } from './keychainService'
-import { generateHmacSignature, generateRequestTimestamp } from '@shared/utils/securityUtils'
-import { logout } from '@features/auth/authSlice'
+import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from './keychainService'
+import { signRequest } from '@shared/utils/hmac'
 
-const SENSITIVE_FIELDS = ['password', 'token', 'cardNumber', 'cvv', 'otp']
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? ''
+const TIMEOUT = Number(process.env.EXPO_PUBLIC_API_TIMEOUT ?? 30000)
 
-const sanitizeForLogging = (data: unknown): unknown => {
-  if (!data || typeof data !== 'object') return data
-  const sanitized: Record<string, unknown> = { ...data as Record<string, unknown> }
-  SENSITIVE_FIELDS.forEach(field => {
-    if (field in sanitized) sanitized[field] = '[REDACTED]'
-  })
-  return sanitized
-}
-
-const rawBaseQuery = fetchBaseQuery({
-  baseUrl: CONFIG.API_BASE_URL,
-  prepareHeaders: async (headers, { getState: _gs }) => {
-    const token = await getAccessToken()
-    if (token) headers.set('Authorization', `Bearer ${token}`)
-    headers.set('X-App-Version', '1.0.0')
-    headers.set('X-Platform', 'react-native')
-    return headers
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: TIMEOUT,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-App-Version': process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
+    'X-Platform': 'mobile',
   },
 })
 
-const addSignatureHeaders = async (
-  args: FetchArgs,
-  headers: Record<string, string>,
-): Promise<Record<string, string>> => {
-  const method = args.method ?? 'GET'
-  const url = typeof args.url === 'string' ? args.url : String(args.url)
-  const body = args.body ? JSON.stringify(args.body) : ''
-  const timestamp = generateRequestTimestamp()
-  const sig = generateHmacSignature(method, url, timestamp, body)
-  return {
-    ...headers,
-    'X-Request-Signature': sig,
-    'X-Request-Timestamp': String(timestamp),
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const token = await getAccessToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
+
+  const { signature, timestamp } = signRequest(
+    config.method?.toUpperCase() ?? 'GET',
+    config.url ?? '',
+    config.data ? JSON.stringify(config.data) : '',
+  )
+  config.headers['X-Request-Signature'] = signature
+  config.headers['X-Request-Timestamp'] = timestamp
+
+  return config
+})
+
+let isRefreshing = false
+let refreshQueue: Array<(token: string) => void> = []
+
+const processQueue = (token: string) => {
+  refreshQueue.forEach(cb => cb(token))
+  refreshQueue = []
 }
 
-export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
-  args,
-  api,
-  extraOptions,
-) => {
-  const fetchArgs: FetchArgs = typeof args === 'string' ? { url: args } : args
-  const signedHeaders = await addSignatureHeaders(fetchArgs, {})
+apiClient.interceptors.response.use(
+  response => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-  const result = await rawBaseQuery(
-    { ...fetchArgs, headers: { ...fetchArgs.headers, ...signedHeaders } },
-    api,
-    extraOptions,
-  )
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(resolve => {
+          refreshQueue.push((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            resolve(apiClient(originalRequest))
+          })
+        })
+      }
 
-  if (result.error?.status === 401) {
-    const refreshToken = await getRefreshToken()
-    if (refreshToken) {
-      const refreshResult = await rawBaseQuery(
-        { url: '/auth/refresh-token', method: 'POST', body: { refreshToken } },
-        api,
-        extraOptions,
-      )
-      if (refreshResult.data) {
-        const { accessToken, refreshToken: newRefresh } = refreshResult.data as { accessToken: string; refreshToken: string }
-        await storeTokens(accessToken, newRefresh)
-        return rawBaseQuery(
-          { ...fetchArgs, headers: { ...fetchArgs.headers, ...signedHeaders, Authorization: `Bearer ${accessToken}` } },
-          api,
-          extraOptions,
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const refreshToken = await getRefreshToken()
+        if (!refreshToken) throw new Error('No refresh token')
+
+        const { data } = await axios.post<{ data: { accessToken: string; refreshToken: string } }>(
+          `${BASE_URL}/auth/refresh-token`,
+          { refreshToken },
         )
+        const { accessToken, refreshToken: newRefresh } = data.data
+        await saveTokens(accessToken, newRefresh)
+        processQueue(accessToken)
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`
+        return apiClient(originalRequest)
+      } catch {
+        await clearTokens()
+        // Dispatch logout action via event emitter to avoid circular dep
+        refreshQueue = []
+        return Promise.reject(error)
+      } finally {
+        isRefreshing = false
       }
     }
-    await clearTokens()
-    api.dispatch(logout())
-  }
 
-  if (result.error) {
-    Sentry.captureException(new Error(`API Error ${result.error.status}`), {
-      extra: {
-        url: typeof args === 'string' ? args : args.url,
-        status: result.error.status,
-        data: sanitizeForLogging(result.error.data),
-      },
+    Sentry.withScope(scope => {
+      scope.setTag('api_error', 'true')
+      scope.setExtra('url', originalRequest?.url)
+      scope.setExtra('method', originalRequest?.method)
+      scope.setExtra('status', error.response?.status)
+      Sentry.captureException(error)
     })
-  }
 
-  return result
-}
-
-export const analyticsService = {
-  logEvent: (_name: string, _params?: Record<string, unknown>) => {
-    // implemented in analyticsService.ts
+    return Promise.reject(error)
   },
-}
+)
+
+export const axiosBaseQuery =
+  (): BaseQueryFn<{
+    url: string
+    method: AxiosRequestConfig['method']
+    data?: unknown
+    params?: unknown
+  }> =>
+  async ({ url, method, data, params }) => {
+    try {
+      const result = await apiClient({ url, method, data, params })
+      return { data: (result.data as { data: unknown }).data ?? result.data }
+    } catch (axiosError) {
+      const err = axiosError as AxiosError<{ error?: { code: string; message: string } }>
+      return {
+        error: {
+          status: err.response?.status,
+          data: err.response?.data?.error ?? err.message,
+        },
+      }
+    }
+  }

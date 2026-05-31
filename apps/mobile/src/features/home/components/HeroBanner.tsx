@@ -1,90 +1,91 @@
-import React, { memo, useEffect, useRef, useState, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native'
+import React, { memo, useRef, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, FlatList } from 'react-native'
 import FastImage from 'react-native-fast-image'
+import { LinearGradient } from 'react-native-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
-import type { HeroBanner as HeroBannerData } from '@store/api/homeApi'
+import type { Banner } from '../home.types'
+
+const { width } = Dimensions.get('window')
+const BANNER_HEIGHT = 280
 
 interface HeroBannerProps {
-  banners: HeroBannerData[]
+  banners: Banner[]
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-
 const HeroBanner: React.FC<HeroBannerProps> = memo(({ banners }) => {
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const [activeIndex, setActiveIndex] = useState(0)
-  const scrollRef = useRef<ScrollView>(null)
+  const { colors, typography, radius } = useTheme()
+  const { t } = useTranslation()
+  const flatListRef = useRef<FlatList>(null)
+  const currentIndex = useRef(0)
 
   useEffect(() => {
     if (banners.length <= 1) return
     const timer = setInterval(() => {
-      const next = (activeIndex + 1) % banners.length
-      scrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true })
-      setActiveIndex(next)
+      currentIndex.current = (currentIndex.current + 1) % banners.length
+      flatListRef.current?.scrollToIndex({ index: currentIndex.current, animated: true })
     }, 4000)
     return () => clearInterval(timer)
-  }, [activeIndex, banners.length])
-
-  const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { x: number } } }) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH)
-    setActiveIndex(index)
-  }, [])
-
-  const handleCta = useCallback((route: string, params?: Record<string, string>) => {
-    navigation.navigate(route, params)
-  }, [navigation])
+  }, [banners])
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
+        ref={flatListRef}
+        data={banners}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScroll}
-      >
-        {banners.map(item => (
-          <View key={item.id} style={styles.slide}>
-            <FastImage source={{ uri: item.imageUrl }} style={styles.image} resizeMode={FastImage.resizeMode.cover} />
-            <View style={styles.overlay}>
-              <Text style={styles.title}>{item.title}</Text>
-              {item.subtitle ? <Text style={styles.subtitle}>{item.subtitle}</Text> : null}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={[styles.slide, { width }]}>
+            <FastImage
+              source={{ uri: item.imageUrl, priority: FastImage.priority.high }}
+              style={styles.image}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(15,15,26,0.9)']}
+              style={styles.gradient}
+            >
+              <Text style={[typography.h3, { color: colors.textPrimary, marginBottom: 8 }]}>{item.title}</Text>
+              {item.subtitle && (
+                <Text style={[typography.body2, { color: colors.textSecondary, marginBottom: 16 }]}>
+                  {item.subtitle}
+                </Text>
+              )}
               <TouchableOpacity
-                style={[styles.cta, { backgroundColor: colors.primary }]}
-                onPress={() => handleCta(item.ctaRoute, item.ctaParams)}
+                style={[styles.ctaBtn, { backgroundColor: colors.primary, borderRadius: radius.full }]}
                 activeOpacity={0.75}
               >
-                <Text style={styles.ctaText}>{item.ctaLabel}</Text>
+                <Text style={[typography.label, { color: colors.textInverse }]}>{item.ctaLabel}</Text>
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
           </View>
-        ))}
-      </ScrollView>
-      <View style={styles.dots}>
-        {banners.map((b, i) => (
-          <View
-            key={b.id}
-            style={[styles.dot, { backgroundColor: i === activeIndex ? colors.primary : colors.textMuted }]}
-          />
-        ))}
-      </View>
+        )}
+      />
     </View>
   )
 })
 
 const styles = StyleSheet.create({
-  container: { height: 280 },
-  slide: { width: SCREEN_WIDTH },
-  image: { width: SCREEN_WIDTH, height: 280 },
-  overlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 32 },
-  title: { color: '#fff', fontFamily: 'PlayfairDisplay-Bold', fontSize: 24, marginBottom: 4 },
-  subtitle: { color: 'rgba(255,255,255,0.8)', fontFamily: 'Poppins-Regular', fontSize: 14, marginBottom: 12 },
-  cta: { alignSelf: 'flex-start', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
-  ctaText: { color: '#0F0F1A', fontFamily: 'Poppins-SemiBold', fontSize: 14 },
-  dots: { position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  container: { height: BANNER_HEIGHT },
+  slide: { height: BANNER_HEIGHT, position: 'relative' },
+  image: { width: '100%', height: '100%' },
+  gradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 24,
+    paddingBottom: 28,
+  },
+  ctaBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
 })
 
 export default HeroBanner

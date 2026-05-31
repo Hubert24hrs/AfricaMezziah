@@ -1,53 +1,71 @@
-import React, { memo } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import React, { memo, useCallback } from 'react'
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@shared/hooks/useTheme'
 import ProductCard from '@shared/components/ProductCard'
-import type { Product } from '@store/api/productsApi'
+import { ROUTES } from '@constants/routes'
+import type { Product } from '@features/catalog/catalog.types'
 
 interface ProductStripProps {
   title: string
   products: Product[]
-  onProductPress: (id: string) => void
-  onSeeAll?: () => void
-  badgeType?: 'ai' | 'new'
+  seeAllRoute?: string
+  badgeType?: 'new' | 'hot' | 'none'
 }
 
-const ProductStrip: React.FC<ProductStripProps> = memo(({ title, products, onProductPress, onSeeAll, badgeType }) => {
-  const { colors } = useTheme()
+const ProductStrip: React.FC<ProductStripProps> = memo(({ title, products, seeAllRoute, badgeType = 'none' }) => {
+  const { t } = useTranslation()
+  const { colors, typography, spacing } = useTheme()
+  const navigation = useNavigation()
+
+  const handlePress = useCallback(
+    (id: string) => {
+      // @ts-ignore
+      navigation.navigate(ROUTES.PRODUCT_DETAIL, { productId: id })
+    },
+    [navigation],
+  )
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          {badgeType === 'ai' && <Text style={styles.sparkle}>✨ </Text>}
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-        </View>
-        {onSeeAll && (
-          <TouchableOpacity onPress={onSeeAll} activeOpacity={0.75}>
-            <Text style={[styles.seeAll, { color: colors.primary }]}>See All</Text>
+      <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
+        <Text style={[typography.h4, { color: colors.textPrimary }]}>{title}</Text>
+        {seeAllRoute && (
+          <TouchableOpacity>
+            <Text style={[typography.label, { color: colors.primary }]}>{t('common.seeAll')}</Text>
           </TouchableOpacity>
         )}
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
-        {products.map(p => (
-          <View key={p.id} style={styles.cardWrap}>
-            <ProductCard product={p} onPress={() => onProductPress(p.id)} />
-          </View>
-        ))}
-      </ScrollView>
+
+      <FlatList
+        data={products}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm }}
+        renderItem={({ item }) => (
+          <ProductCard
+            id={item.id}
+            title={item.title}
+            price={item.price}
+            originalPrice={item.originalPrice}
+            imageUrl={item.imageUrl}
+            rating={item.rating}
+            reviewCount={item.reviewCount}
+            isNew={badgeType === 'new'}
+            isHot={badgeType === 'hot'}
+            onPress={() => handlePress(item.id)}
+          />
+        )}
+      />
     </View>
   )
 })
 
 const styles = StyleSheet.create({
   container: { marginBottom: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { fontFamily: 'Poppins-SemiBold', fontSize: 17 },
-  sparkle: { fontSize: 17 },
-  seeAll: { fontFamily: 'Poppins-Medium', fontSize: 13 },
-  list: { paddingHorizontal: 16, gap: 12 },
-  cardWrap: { width: 160 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
 })
 
 export default ProductStrip

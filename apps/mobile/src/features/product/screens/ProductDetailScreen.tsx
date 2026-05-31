@@ -1,221 +1,205 @@
-import React, { memo, useCallback, useMemo, useState } from 'react'
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-} from 'react-native'
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
+import React, { memo, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
+import { LinearGradient } from 'react-native-linear-gradient'
+import { useNavigation, useRoute } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
+import * as Haptics from 'expo-haptics'
 import { useTheme } from '@shared/hooks/useTheme'
-import { useGetProductQuery } from '@store/api/productsApi'
+import { useGetProductByIdQuery } from '@store/api/productsApi'
 import { useAddToCartMutation } from '@store/api/cartApi'
+import { useAddToWishlistMutation, useRemoveFromWishlistMutation } from '@store/api/userApi'
+import { ROUTES } from '@constants/routes'
 import Button from '@shared/components/Button'
 import Badge from '@shared/components/Badge'
-import Toast from '@shared/components/Toast'
-import { ROUTES } from '@shared/constants/routes'
+import { ProductCardSkeleton } from '@shared/components/Skeleton'
+import { formatCurrency } from '@shared/utils/formatCurrency'
 
 const { width } = Dimensions.get('window')
 
-type ProductDetailRouteParams = {
-  ProductDetail: { productId: string }
-}
-
-/** Full product detail screen with gallery, selectors, add to cart */
 const ProductDetailScreen: React.FC = memo(() => {
   const { t } = useTranslation()
-  const { colors } = useTheme()
-  const navigation = useNavigation<any>()
-  const route = useRoute<RouteProp<ProductDetailRouteParams, 'ProductDetail'>>()
-  const { productId } = route.params
+  const { colors, typography, spacing, radius, shadows } = useTheme()
+  const navigation = useNavigation()
+  const route = useRoute()
+  // @ts-ignore
+  const { productId } = route.params ?? {}
 
-  const { data: product, isLoading } = useGetProductQuery(productId)
-  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation()
+  const { data: product, isLoading } = useGetProductByIdQuery(productId as string)
+  const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation()
+  const [addToWishlist] = useAddToWishlistMutation()
+  const [removeFromWishlist] = useRemoveFromWishlistMutation()
 
-  const [selectedColor, setSelectedColor] = useState(0)
-  const [selectedSize, setSelectedSize] = useState(0)
-  const [activeImage, setActiveImage] = useState(0)
-  const [wishlisted, setWishlisted] = useState(false)
-  const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' } | null>(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [selectedSize, setSelectedSize] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [isWishlisted, setIsWishlisted] = useState(false)
 
   const handleAddToCart = useCallback(async () => {
-    if (!product) return
-    const variant = product.variants.find(
-      v => v.color === product.colors[selectedColor]?.name && v.size === product.sizes[selectedSize],
-    )
-    try {
-      await addToCart({
-        productId: product.id,
-        variantId: variant?.id ?? product.variants[0]?.id ?? '',
-        quantity: 1,
-      }).unwrap()
-      setToast({ msg: t('cart.addedToCart'), type: 'success' })
-    } catch {
-      setToast({ msg: t('errors.generic'), type: 'error' })
+    if (!selectedSize && product?.variants?.some(v => v.size)) {
+      Alert.alert('Select Size', t('product.selectSize'))
+      return
     }
-  }, [product, selectedColor, selectedSize, addToCart, t])
+    const variant = product?.variants?.find(v => v.size === selectedSize) ?? product?.variants?.[0]
+    if (!variant || !product) return
 
-  const handleBuyNow = useCallback(async () => {
-    await handleAddToCart()
-    navigation.navigate(ROUTES.CHECKOUT)
-  }, [handleAddToCart, navigation])
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    await addToCart({ productId: product.id, variantId: variant.id, quantity: 1 })
+  }, [product, selectedSize, addToCart, t])
 
-  const discountPercent = useMemo(() => {
-    if (!product?.originalPrice || !product?.price) return null
-    return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-  }, [product])
-
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const handleWishlist = useCallback(async () => {
+    if (!product) return
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    if (isWishlisted) {
+      await removeFromWishlist(product.id)
+    } else {
+      await addToWishlist(product.id)
+    }
+    setIsWishlisted(prev => !prev)
+  }, [product, isWishlisted, addToWishlist, removeFromWishlist])
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
-      </SafeAreaView>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ProductCardSkeleton />
+      </View>
     )
   }
 
   if (!product) return null
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setWishlisted(w => !w)}
-          style={styles.heartBtn}
-          activeOpacity={0.75}
-        >
-          <Text style={[styles.heartIcon, { color: wishlisted ? colors.accent : colors.textMuted }]}>
-            {wishlisted ? '♥' : '♡'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+  const images = [product.imageUrl, ...(product.images ?? [])]
+  const sizes = [...new Set(product.variants?.map(v => v.size).filter(Boolean) as string[])]
+  const colorVariants = product.variants?.filter(v => v.color) ?? []
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image Gallery */}
-        <View>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={e => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / width)
-              setActiveImage(idx)
-            }}
+        <View style={styles.imageSection}>
+          <FastImage
+            source={{ uri: images[selectedImageIndex] ?? product.imageUrl, priority: FastImage.priority.high }}
+            style={styles.mainImage}
+            resizeMode={FastImage.resizeMode.cover}
+          />
+
+          {/* Back Button */}
+          <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: `${colors.surface}CC`, borderRadius: radius.full }]}
+            onPress={() => navigation.goBack()}
           >
-            {product.images.map((img, i) => (
-              <FastImage
-                key={i}
-                source={{ uri: img, priority: FastImage.priority.high }}
-                style={styles.galleryImage}
-                resizeMode={FastImage.resizeMode.cover}
-              />
-            ))}
-          </ScrollView>
-          <View style={styles.dotRow}>
-            {product.images.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  { backgroundColor: i === activeImage ? colors.primary : colors.border },
-                ]}
-              />
-            ))}
-          </View>
-          {discountPercent && (
-            <View style={styles.discountBadge}>
-              <Badge type="discount" label={`-${discountPercent}%`} />
+            <Text style={{ color: colors.textPrimary }}>←</Text>
+          </TouchableOpacity>
+
+          {/* Wishlist */}
+          <TouchableOpacity
+            style={[styles.wishlistAbsBtn, { backgroundColor: `${colors.surface}CC`, borderRadius: radius.full }]}
+            onPress={() => { void handleWishlist() }}
+          >
+            <Text style={{ color: isWishlisted ? colors.accent : colors.textPrimary, fontSize: 20 }}>
+              {isWishlisted ? '♥' : '♡'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3D View Button */}
+          {product.threeDModelUrl && (
+            <TouchableOpacity
+              style={[styles.threeDBtn, { backgroundColor: colors.primary, borderRadius: radius.full }]}
+              // @ts-ignore
+              onPress={() => navigation.navigate(ROUTES.THREE_D_VIEWER, { modelUrl: product.threeDModelUrl })}
+            >
+              <Text style={[typography.caption, { color: colors.textInverse }]}>{t('product.view3D')}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Thumbnail Strip */}
+          {images.length > 1 && (
+            <View style={styles.thumbnails}>
+              {images.map((img, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setSelectedImageIndex(i)}
+                  style={[
+                    styles.thumb,
+                    {
+                      borderColor: selectedImageIndex === i ? colors.primary : 'transparent',
+                      borderRadius: radius.sm,
+                    },
+                  ]}
+                >
+                  <FastImage source={{ uri: img }} style={styles.thumbImage} resizeMode={FastImage.resizeMode.cover} />
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </View>
 
-        <View style={styles.details}>
-          {/* Brand + Rating */}
-          <View style={styles.metaRow}>
-            <Text style={styles.brand}>{product.seller.name}</Text>
-            <View style={styles.ratingRow}>
-              <Text style={styles.stars}>{'★'.repeat(Math.round(product.rating))}</Text>
-              <Text style={styles.ratingCount}>({product.reviewCount})</Text>
-            </View>
+        {/* Product Info */}
+        <View style={[styles.infoSection, { paddingHorizontal: spacing.md }]}>
+          {/* Badges */}
+          <View style={styles.badgeRow}>
+            {product.isNew && <Badge variant="new" />}
+            {product.isHot && <Badge variant="hot" />}
+            {product.isFlashSale && <Badge variant="flashSale" />}
           </View>
 
-          {/* Name */}
-          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={[typography.h3, { color: colors.textPrimary, marginTop: 8 }]}>{product.title}</Text>
+
+          {/* Rating */}
+          {product.rating && (
+            <TouchableOpacity
+              style={styles.ratingRow}
+              // @ts-ignore
+              onPress={() => navigation.navigate(ROUTES.REVIEWS, { productId: product.id })}
+            >
+              <Text style={{ color: colors.warning }}>{'★'.repeat(Math.round(product.rating))}</Text>
+              <Text style={[typography.body2, { color: colors.textSecondary }]}>
+                {product.rating.toFixed(1)} ({product.reviewCount} {t('product.reviews')})
+              </Text>
+              <Text style={[typography.caption, { color: colors.primary }]}>→</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Price */}
           <View style={styles.priceRow}>
-            <Text style={styles.price}>₦{product.price.toLocaleString()}</Text>
-            {product.originalPrice && (
-              <Text style={styles.originalPrice}>₦{product.originalPrice.toLocaleString()}</Text>
+            <Text style={[typography.h2, { color: colors.primary }]}>
+              {formatCurrency(product.price, product.currency)}
+            </Text>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <Text style={[typography.body1, { color: colors.textMuted, textDecorationLine: 'line-through' }]}>
+                {formatCurrency(product.originalPrice, product.currency)}
+              </Text>
             )}
           </View>
 
-          {/* Color Selector */}
-          {product.colors.length > 0 && (
-            <View style={styles.selectorSection}>
-              <Text style={styles.selectorLabel}>
-                {t('product.color')}: <Text style={styles.selectedValue}>{product.colors[selectedColor]?.name}</Text>
-              </Text>
-              <View style={styles.colorRow}>
-                {product.colors.map((color, i) => (
-                  <TouchableOpacity
-                    key={color.name}
-                    style={[
-                      styles.colorSwatch,
-                      { backgroundColor: color.hex },
-                      i === selectedColor && styles.colorSwatchActive,
-                    ]}
-                    onPress={() => setSelectedColor(i)}
-                    activeOpacity={0.75}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Size Selector */}
-          {product.sizes.length > 0 && (
-            <View style={styles.selectorSection}>
-              <View style={styles.sizeLabelRow}>
-                <Text style={styles.selectorLabel}>
-                  {t('product.size')}: <Text style={styles.selectedValue}>{product.sizes[selectedSize]}</Text>
-                </Text>
+          {/* Sizes */}
+          {sizes.length > 0 && (
+            <View style={styles.optionSection}>
+              <View style={styles.optionHeader}>
+                <Text style={[typography.h4, { color: colors.textPrimary }]}>{t('product.selectSize')}</Text>
                 <TouchableOpacity
+                  // @ts-ignore
                   onPress={() => navigation.navigate(ROUTES.SIZE_GUIDE, { category: product.category })}
-                  activeOpacity={0.75}
                 >
-                  <Text style={styles.sizeGuideLink}>{t('product.sizeGuide')}</Text>
+                  <Text style={[typography.caption, { color: colors.primary }]}>{t('product.sizeGuide')}</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.sizeRow}>
-                {product.sizes.map((size, i) => (
+              <View style={styles.chips}>
+                {sizes.map(size => (
                   <TouchableOpacity
                     key={size}
                     style={[
                       styles.sizeChip,
-                      i === selectedSize
-                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                        : { borderColor: colors.border },
+                      {
+                        borderColor: selectedSize === size ? colors.primary : colors.border,
+                        backgroundColor: selectedSize === size ? colors.primary : colors.surface,
+                        borderRadius: radius.md,
+                      },
                     ]}
-                    onPress={() => setSelectedSize(i)}
-                    activeOpacity={0.75}
+                    onPress={() => setSelectedSize(size)}
                   >
-                    <Text
-                      style={[
-                        styles.sizeChipText,
-                        { color: i === selectedSize ? colors.textInverse : colors.textPrimary },
-                      ]}
-                    >
+                    <Text style={[typography.label, { color: selectedSize === size ? colors.textInverse : colors.textSecondary }]}>
                       {size}
                     </Text>
                   </TouchableOpacity>
@@ -224,135 +208,77 @@ const ProductDetailScreen: React.FC = memo(() => {
             </View>
           )}
 
-          {/* 3D View */}
-          {product.has3dModel && (
-            <TouchableOpacity
-              style={[styles.threeDBtn, { borderColor: colors.primary }]}
-              onPress={() => navigation.navigate(ROUTES.THREE_D_VIEWER, { productId })}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.threeDText, { color: colors.primary }]}>
-                ◈ {t('product.view3D')}
-              </Text>
-            </TouchableOpacity>
+          {/* Colors */}
+          {colorVariants.length > 0 && (
+            <View style={styles.optionSection}>
+              <Text style={[typography.h4, { color: colors.textPrimary, marginBottom: 12 }]}>{t('product.selectColor')}</Text>
+              <View style={styles.colorRow}>
+                {colorVariants.map(v => (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[
+                      styles.colorDot,
+                      {
+                        backgroundColor: v.colorHex ?? '#ccc',
+                        borderColor: selectedColor === v.color ? colors.primary : 'transparent',
+                      },
+                    ]}
+                    onPress={() => setSelectedColor(v.color ?? null)}
+                  />
+                ))}
+              </View>
+            </View>
           )}
 
           {/* Description */}
-          <View style={styles.descSection}>
-            <Text style={styles.descTitle}>{t('product.description')}</Text>
-            <Text style={styles.desc}>{product.description}</Text>
-          </View>
-
-          {/* Reviews shortcut */}
-          <TouchableOpacity
-            style={[styles.reviewsBtn, { borderColor: colors.border }]}
-            onPress={() => navigation.navigate(ROUTES.REVIEWS, { productId })}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.reviewsBtnText, { color: colors.textPrimary }]}>
-              {t('product.seeAllReviews')} ({product.reviewCount}) →
-            </Text>
-          </TouchableOpacity>
-
-          <View style={{ height: 100 }} />
+          {product.description && (
+            <View style={styles.section}>
+              <Text style={[typography.h4, { color: colors.textPrimary, marginBottom: 8 }]}>{t('product.description')}</Text>
+              <Text style={[typography.body2, { color: colors.textSecondary, lineHeight: 24 }]}>{product.description}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom */}
-      <View style={[styles.stickyBottom, { borderTopColor: colors.border }]}>
+      {/* Bottom CTA */}
+      <LinearGradient
+        colors={[`${colors.background}00`, colors.background]}
+        style={[styles.bottomCta, { paddingHorizontal: spacing.md }]}
+      >
         <Button
-          title={t('cart.addToCart')}
-          onPress={handleAddToCart}
-          loading={isAdding}
-          variant="secondary"
-          style={styles.addBtn}
+          label={product.isOutOfStock ? t('product.outOfStock') : t('product.addToCart')}
+          onPress={() => { void handleAddToCart() }}
+          loading={isAddingToCart}
+          disabled={!!product.isOutOfStock}
+          variant="primary"
         />
-        <Button
-          title={t('cart.buyNow')}
-          onPress={handleBuyNow}
-          style={styles.buyBtn}
-        />
-      </View>
-
-      {toast && (
-        <Toast message={toast.msg} type={toast.type} onDismiss={() => setToast(null)} />
-      )}
+      </LinearGradient>
     </SafeAreaView>
   )
 })
 
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-    },
-    backText: { fontFamily: 'Poppins-Medium', fontSize: 22, color: colors.textSecondary },
-    heartBtn: { padding: 8 },
-    heartIcon: { fontSize: 26 },
-    scroll: { flex: 1 },
-    galleryImage: { width, height: 380 },
-    dotRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12 },
-    dot: { width: 6, height: 6, borderRadius: 3 },
-    discountBadge: { position: 'absolute', top: 16, left: 16 },
-    details: { paddingHorizontal: 20, paddingTop: 20 },
-    metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    brand: { fontFamily: 'Poppins-Medium', fontSize: 13, color: colors.textMuted },
-    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    stars: { color: colors.primary, fontSize: 14 },
-    ratingCount: { fontFamily: 'Inter-Regular', fontSize: 12, color: colors.textMuted },
-    productName: { fontFamily: 'PlayfairDisplay-SemiBold', fontSize: 22, color: colors.textPrimary, marginBottom: 12 },
-    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-    price: { fontFamily: 'Inter-Bold', fontSize: 24, color: colors.primary },
-    originalPrice: { fontFamily: 'Inter-Regular', fontSize: 16, color: colors.textMuted, textDecorationLine: 'line-through' },
-    selectorSection: { marginBottom: 20 },
-    selectorLabel: { fontFamily: 'Poppins-Medium', fontSize: 14, color: colors.textSecondary, marginBottom: 10 },
-    selectedValue: { color: colors.textPrimary },
-    colorRow: { flexDirection: 'row', gap: 12 },
-    colorSwatch: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: 'transparent' },
-    colorSwatchActive: { borderColor: colors.primary, transform: [{ scale: 1.1 }] },
-    sizeLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-    sizeGuideLink: { fontFamily: 'Poppins-Medium', fontSize: 13, color: colors.primary },
-    sizeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    sizeChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      borderWidth: 1.5,
-    },
-    sizeChipText: { fontFamily: 'Poppins-Medium', fontSize: 13 },
-    threeDBtn: {
-      borderWidth: 1.5,
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    threeDText: { fontFamily: 'Poppins-SemiBold', fontSize: 15 },
-    descSection: { marginBottom: 20 },
-    descTitle: { fontFamily: 'Poppins-SemiBold', fontSize: 16, color: colors.textPrimary, marginBottom: 8 },
-    desc: { fontFamily: 'Poppins-Regular', fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
-    reviewsBtn: {
-      borderWidth: 1,
-      borderRadius: 12,
-      paddingVertical: 14,
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    reviewsBtnText: { fontFamily: 'Poppins-Medium', fontSize: 14 },
-    stickyBottom: {
-      flexDirection: 'row',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderTopWidth: 1,
-      gap: 12,
-    },
-    addBtn: { flex: 1 },
-    buyBtn: { flex: 1 },
-  })
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  imageSection: { position: 'relative' },
+  mainImage: { width, height: width * 1.1 },
+  backBtn: { position: 'absolute', top: 16, left: 16, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  wishlistAbsBtn: { position: 'absolute', top: 16, right: 16, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  threeDBtn: { position: 'absolute', bottom: 80, right: 16, paddingHorizontal: 12, paddingVertical: 6 },
+  thumbnails: { position: 'absolute', bottom: 16, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  thumb: { borderWidth: 2, overflow: 'hidden' },
+  thumbImage: { width: 48, height: 48 },
+  infoSection: { paddingTop: 16, paddingBottom: 120 },
+  badgeRow: { flexDirection: 'row', gap: 8 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: 8 },
+  optionSection: { marginTop: 20 },
+  optionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sizeChip: { width: 52, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  colorRow: { flexDirection: 'row', gap: 12 },
+  colorDot: { width: 36, height: 36, borderRadius: 18, borderWidth: 2 },
+  section: { marginTop: 20 },
+  bottomCta: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingTop: 24, paddingBottom: 32 },
+})
 
 export default ProductDetailScreen
