@@ -5,16 +5,16 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
-    @UseGuards(LocalAuthGuard)
-    @Post('login')
-    async login(@Request() req: any) {
-        return this.authService.login(req.user);
-    }
+  @UseGuards(LocalAuthGuard)
+  @Post('login')
+  async login(@Request() req: any) {
+    return this.authService.login(req.user);
+  }
 
-    @Post('register')
-    async register(@Body() createUserDto: CreateUserDto) {
-        return this.authService.register(createUserDto);
-    }
+  @Post('register')
+  async register(@Body() createUserDto: CreateUserDto) {
+    return this.authService.register(createUserDto);
+  }
 }

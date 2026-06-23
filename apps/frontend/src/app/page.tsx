@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -11,16 +12,16 @@ const Hero3D = dynamic(() => import("@/components/3d/Hero3D"), { ssr: false });
 
 // Sample featured products (replace with API data)
 const featuredProducts = [
-  { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=400&h=600&fit=crop", category: "Dresses" },
+  { id: "1", name: "Ankara Elegance Dress", price: 45000, image: "https://images.unsplash.com/photo-1760907949889-eb62b7fd9f75?w=400&h=600&fit=crop", category: "Dresses" },
   { id: "2", name: "Kente Wrap Top", price: 28000, image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=400&h=600&fit=crop", category: "Tops" },
-  { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=400&h=600&fit=crop", category: "Traditional" },
+  { id: "3", name: "Adire Print Skirt", price: 32000, image: "https://images.unsplash.com/photo-1709809081557-78f803ce93a0?w=400&h=600&fit=crop", category: "Traditional" },
   { id: "4", name: "Beaded Statement Necklace", price: 18000, image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=600&fit=crop", category: "Accessories" },
 ];
 
 const categories = [
-  { name: "Dresses", image: "https://images.unsplash.com/photo-1611299288800-f3a7f5c4b1fa?w=300&h=400&fit=crop", count: 42 },
+  { name: "Dresses", image: "https://images.unsplash.com/photo-1760907949889-eb62b7fd9f75?w=300&h=400&fit=crop", count: 42 },
   { name: "Tops", image: "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=300&h=400&fit=crop", count: 38 },
-  { name: "Traditional Wear", image: "https://images.unsplash.com/photo-1590735213408-9d0bd67b1ed3?w=300&h=400&fit=crop", count: 25 },
+  { name: "Traditional Wear", image: "https://images.unsplash.com/photo-1709809081557-78f803ce93a0?w=300&h=400&fit=crop", count: 25 },
   { name: "Accessories", image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&h=400&fit=crop", count: 56 },
 ];
 
@@ -150,10 +151,12 @@ export default function HomePage() {
                 transition={{ delay: index * 0.1 }}
                 className="group relative aspect-[3/4] rounded-2xl overflow-hidden"
               >
-                <img
+                <Image
                   src={category.image}
                   alt={category.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  sizes="(max-width: 640px) 50vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-dark-950/80 via-dark-950/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6">

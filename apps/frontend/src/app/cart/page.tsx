@@ -14,6 +14,7 @@ export default function CartPage() {
 
     // Prevent hydration mismatch
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
@@ -57,7 +58,7 @@ export default function CartPage() {
                                 Your cart is empty
                             </h2>
                             <p className="text-dark-500 mb-8">
-                                Looks like you haven't added anything to your cart yet.
+                                Looks like you haven&apos;t added anything to your cart yet.
                             </p>
                             <Link href="/shop" className="btn-primary">
                                 Start Shopping
